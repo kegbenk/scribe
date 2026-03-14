@@ -1,0 +1,15 @@
+{
+  "book": "healing-dream",
+  "locked": "2026-03-13",
+  "overall": 0.5988751160428206,
+  "dimensions": {
+    "chapter_boundaries": 0.08695652173913045,
+    "chapter_titles": 0.29635854341736695,
+    "footnote_separation": 1,
+    "running_header_clean": 0.7195737521031969,
+    "body_text_completeness": 0.5569677554147225,
+    "reading_order": 1,
+    "back_matter_detection": 0.4,
+    "ocr_quality": 0.9595920803817046
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@scribe/vision",
+  "version": "0.1.0",
+  "description": "MLX-based vision pipeline for Scribe PDF analysis",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "analyze": "node orchestrator.js"
+  }
+}

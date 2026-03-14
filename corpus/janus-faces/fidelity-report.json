@@ -1,0 +1,49 @@
+{
+  "overall": 0.572152182859635,
+  "pass": false,
+  "threshold": 0.9,
+  "dimensions": [
+    {
+      "name": "chapter_boundaries",
+      "score": 0.4,
+      "weight": 0.2,
+      "weighted": 0.08000000000000002
+    },
+    {
+      "name": "chapter_titles",
+      "score": 0.2178030303030303,
+      "weight": 0.15,
+      "weighted": 0.032670454545454544
+    },
+    {
+      "name": "footnote_separation",
+      "score": 0.9989041095890411,
+      "weight": 0.2,
+      "weighted": 0.19978082191780822
+    },
+    {
+      "name": "running_header_clean",
+      "score": 1,
+      "weight": 0.1,
+      "weighted": 0.1
+    },
+    {
+      "name": "body_text_completeness",
+      "score": 0.034369679006117204,
+      "weight": 0.15,
+      "weighted": 0.0051554518509175805
+    },
+    {
+      "name": "reading_order",
+      "score": 0.7454545454545455,
+      "weight": 0.1,
+      "weighted": 0.07454545454545455
+    },
+    {
+      "name": "back_matter_detection",
+      "score": 0.8,
+      "weight": 0.1,
+      "weighted": 0.08000000000000002
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "book": "alice-wonderland",
+  "summary": {
+    "high": 0,
+    "medium": 2,
+    "low": 0
+  },
+  "anomalies": [
+    {
+      "detector": "stub_paragraph",
+      "severity": "MEDIUM",
+      "message": "Chapter \"Pages 201-210\": 4 stub paragraphs (<5 chars)",
+      "chapter": "Pages 201-210",
+      "count": 4,
+      "examples": [
+        "\"'M\"",
+        "\"W\na\"",
+        "\"\">\"",
+        "\"Ilk\""
+      ]
+    },
+    {
+      "detector": "stub_paragraph",
+      "severity": "MEDIUM",
+      "message": "Chapter \"Pages 221-230\": 4 stub paragraphs (<5 chars)",
+      "chapter": "Pages 221-230",
+      "count": 4,
+      "examples": [
+        "\"W&\"",
+        "\"MBBk\"",
+        "\"\"\"",
+        "\"S\\\""
+      ]
+    }
+  ]
+}
