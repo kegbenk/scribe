@@ -1,0 +1,15 @@
+{
+  "book": "janus-faces",
+  "locked": "2026-03-13",
+  "overall": 0.9831081287052821,
+  "dimensions": {
+    "chapter_boundaries": 0.9696969696969697,
+    "chapter_titles": 0.918716577540107,
+    "footnote_separation": 1,
+    "running_header_clean": 1,
+    "body_text_completeness": 0.9948105489428598,
+    "reading_order": 1,
+    "back_matter_detection": 1,
+    "ocr_quality": 0.9985604222761323
+  }
+}

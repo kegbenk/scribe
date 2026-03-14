@@ -1,0 +1,15 @@
+{
+  "book": "alice-wonderland",
+  "locked": "2026-03-13",
+  "overall": 0.560552712891335,
+  "dimensions": {
+    "chapter_boundaries": 0.25641025641025644,
+    "chapter_titles": 0,
+    "footnote_separation": 1,
+    "running_header_clean": 1,
+    "body_text_completeness": 0,
+    "reading_order": 0.625,
+    "back_matter_detection": 1,
+    "ocr_quality": 0.9814886673748895
+  }
+}

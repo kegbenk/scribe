@@ -1,0 +1,12 @@
+{
+  "name": "@scribe/eval",
+  "version": "0.1.0",
+  "description": "PDF fidelity evaluation framework for Scribe",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "score": "node score.js",
+    "inspect": "node inspect.js",
+    "regression": "node regression.js"
+  }
+}

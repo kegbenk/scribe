@@ -1,0 +1,49 @@
+{
+  "overall": 0.525,
+  "pass": false,
+  "threshold": 0.9,
+  "dimensions": [
+    {
+      "name": "chapter_boundaries",
+      "score": 0.125,
+      "weight": 0.2,
+      "weighted": 0.025
+    },
+    {
+      "name": "chapter_titles",
+      "score": 0,
+      "weight": 0.15,
+      "weighted": 0
+    },
+    {
+      "name": "footnote_separation",
+      "score": 1,
+      "weight": 0.2,
+      "weighted": 0.2
+    },
+    {
+      "name": "running_header_clean",
+      "score": 1,
+      "weight": 0.1,
+      "weighted": 0.1
+    },
+    {
+      "name": "body_text_completeness",
+      "score": 0,
+      "weight": 0.15,
+      "weighted": 0
+    },
+    {
+      "name": "reading_order",
+      "score": 1,
+      "weight": 0.1,
+      "weighted": 0.1
+    },
+    {
+      "name": "back_matter_detection",
+      "score": 1,
+      "weight": 0.1,
+      "weighted": 0.1
+    }
+  ]
+}

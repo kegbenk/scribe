@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veloreader.com/schemas/content-structure.schema.json",
+  "title": "ContentStructure",
+  "description": "Universal document structure format produced by all Velo/Scribe parsers (EPUB, PDF native, Marker). Consumed by RSVP, Reader, and Scrub reading modes.",
+  "type": "object",
+  "required": ["chapters"],
+  "properties": {
+    "chapters": {
+      "type": "array",
+      "description": "Ordered list of chapters/sections in the document.",
+      "items": {
+        "$ref": "#/$defs/Chapter"
+      }
+    },
+    "toc": {
+      "type": "array",
+      "description": "Table of contents metadata for navigation UI.",
+      "items": {
+        "$ref": "#/$defs/TOCEntry"
+      }
+    },
+    "hasStructure": {
+      "type": "boolean",
+      "description": "True if chapter boundaries were detected (outline or TOC parsing). False if fallback page-based chunking was used."
+    },
+    "images": {
+      "type": "array",
+      "description": "Global image list with word positions for RSVP placement.",
+      "items": {
+        "$ref": "#/$defs/Image"
+      }
+    },
+    "metadata": {
+      "$ref": "#/$defs/Metadata"
+    }
+  },
+  "$defs": {
+    "Chapter": {
+      "type": "object",
+      "required": ["title", "plainText"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Chapter title as detected from outline, TOC, or heading analysis."
+        },
+        "plainText": {
+          "type": "string",
+          "description": "Full plain text of the chapter body. Paragraphs separated by double newlines. Footnotes may be appended after a ——— separator."
+        },
+        "htmlContent": {
+          "type": ["string", "null"],
+          "description": "Rich HTML rendering of the chapter. Includes semantic headings, emphasis, lists, and footnote sections. Present when source provides structural markup (e.g., Marker, EPUB)."
+        },
+        "startPage": {
+          "type": "integer",
+          "description": "1-based page number where this chapter begins in the source PDF."
+        },
+        "startWordIndex": {
+          "type": "integer",
+          "description": "Global word index (across all chapters) where this chapter starts. Set by calculateWordBoundaries()."
+        },
+        "endWordIndex": {
+          "type": "integer",
+          "description": "Global word index where this chapter ends (exclusive)."
+        },
+        "wordCount": {
+          "type": "integer",
+          "description": "Number of words in this chapter (from tokenizer)."
+        },
+        "footnotes": {
+          "type": "array",
+          "description": "Structured footnotes extracted from this chapter.",
+          "items": {
+            "$ref": "#/$defs/Footnote"
+          }
+        },
+        "images": {
+          "type": "array",
+          "description": "Images belonging to this chapter with local word positions.",
+          "items": {
+            "$ref": "#/$defs/Image"
+          }
+        },
+        "isBackMatter": {
+          "type": "boolean",
+          "description": "True if this chapter is back matter (bibliography, index, notes, appendix)."
+        },
+        "level": {
+          "type": "integer",
+          "description": "Heading level for nested TOC (1 = top-level chapter, 2 = section, etc.)."
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["native", "marker", "epub", "text"],
+          "description": "Which parser produced this chapter's content."
+        }
+      }
+    },
+    "Footnote": {
+      "type": "object",
+      "required": ["number", "text"],
+      "properties": {
+        "number": {
+          "type": "integer",
+          "description": "Footnote reference number."
+        },
+        "text": {
+          "type": "string",
+          "description": "Footnote body text."
+        }
+      }
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "dataURI": {
+          "type": "string",
+          "description": "Base64 data URI (data:image/jpeg;base64,...) of the extracted image."
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "pageIndex": {
+          "type": "integer",
+          "description": "Source PDF page index."
+        },
+        "wordPosition": {
+          "type": "integer",
+          "description": "Word index at which this image should be displayed in RSVP mode."
+        },
+        "yPosition": {
+          "type": "number",
+          "description": "Normalized vertical position on page (0=top, 1=bottom)."
+        }
+      }
+    },
+    "TOCEntry": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "wordIndex": {
+          "type": "integer",
+          "description": "Global word index for navigation."
+        },
+        "chapterIndex": {
+          "type": "integer",
+          "description": "Index into the chapters array."
+        }
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "description": "Optional metadata about the extraction source and process.",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Parser that produced this structure (e.g., 'native-pdf', 'marker-pdf', 'epub')."
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the parser/tool used."
+        },
+        "totalPages": {
+          "type": "integer"
+        },
+        "totalChapters": {
+          "type": "integer"
+        },
+        "totalWords": {
+          "type": "integer"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

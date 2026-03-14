@@ -1,0 +1,8 @@
+{
+  "name": "@scribe/tokenizer",
+  "version": "0.1.0",
+  "description": "Text tokenizer with JS/Swift parity for Scribe",
+  "type": "module",
+  "main": "parseText.js",
+  "license": "Apache-2.0"
+}

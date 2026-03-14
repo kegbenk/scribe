@@ -1,0 +1,452 @@
+{
+  "chapters": [
+    {
+      "title": "Full Text",
+      "plainText": "COPYRIGHT © 2016 BY ARKTOS MEDIA LTD. AND JASON REZA JORJANI. All rights reserved. No part of this book may be reproduced or utilised in any form or by any means (whether electronic or mechanical), including photocopying, recording or by any information storage and retrieval system, without permission in writing from the publisher.\n\nISBN 978-1-910524-61-9 (Softcover)\n\nISBN 978-1-910524-67-1 (Hardback)\n\nISBN 978-1-910524-69-5 (Ebook)\n\nEDITOR\n\nJohn B. Morgan\n\nCOVER DESIGN\n\nAndreas Nilsson\n\nLAYOUT\n\nTor Westman\n\nARKTOS MEDIA LTD.\n\nwww.arktos.com\n\nFacebook\n\nTwitter\n\nCONTENTS\n\nIntroduction\nThe Spectral Revolution\nFringe Science\nReason and Terror\nStorming Heaven\nThe Titanic Total Artwork\nThe Occultation of Supernature\nWorlds at War over Earth\nThe Postmodern Prometheus\nAtlas of the New Atlantis\nKill a Buddha on the Way\nBeing Bound for Freedom\nMercurial Hermeneutics\nBibliography",
+      "paragraphs": [
+        "COPYRIGHT © 2016 BY ARKTOS MEDIA LTD. AND JASON REZA JORJANI. All rights reserved. No part of this book may be reproduced or utilised in any form or by any means (whether electronic or mechanical), including photocopying, recording or by any information storage and retrieval system, without permission in writing from the publisher.",
+        "ISBN 978-1-910524-61-9 (Softcover)",
+        "ISBN 978-1-910524-67-1 (Hardback)",
+        "ISBN 978-1-910524-69-5 (Ebook)",
+        "EDITOR",
+        "John B. Morgan",
+        "COVER DESIGN",
+        "Andreas Nilsson",
+        "LAYOUT",
+        "Tor Westman",
+        "ARKTOS MEDIA LTD.",
+        "www.arktos.com",
+        "Facebook",
+        "Twitter",
+        "CONTENTS",
+        "Introduction\nThe Spectral Revolution\nFringe Science\nReason and Terror\nStorming Heaven\nThe Titanic Total Artwork\nThe Occultation of Supernature\nWorlds at War over Earth\nThe Postmodern Prometheus\nAtlas of the New Atlantis\nKill a Buddha on the Way\nBeing Bound for Freedom\nMercurial Hermeneutics\nBibliography"
+      ],
+      "wordCount": 125,
+      "startPage": 1,
+      "isBackMatter": true,
+      "backMatterType": "bibliography"
+    }
+  ],
+  "_annotations": [
+    {
+      "pageNumber": 1,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 2,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 3,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": true,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "footnoteNumbers": [],
+      "footnoteReferences": [],
+      "regions": [
+        {
+          "type": "body",
+          "readingOrder": 1,
+          "text": "COPYRIGHT © 2016 BY ARKTOS MEDIA LTD. AND JASON REZA JORJANI. All rights reserved. No part of this book may be reproduced or utilised in any form or by any means (whether electronic or mechanical), including photocopying, recording or by any information storage and retrieval system, without permission in writing from the publisher.",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 2,
+          "text": "ISBN 978-1-910524-61-9 (Softcover)",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 3,
+          "text": "ISBN 978-1-910524-67-1 (Hardback)",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 4,
+          "text": "ISBN 978-1-910524-69-5 (Ebook)",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 5,
+          "text": "EDITOR",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 6,
+          "text": "John B. Morgan",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 7,
+          "text": "COVER DESIGN",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 8,
+          "text": "Andreas Nilsson",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 9,
+          "text": "LAYOUT",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 10,
+          "text": "Tor Westman",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 11,
+          "text": "ARKTOS MEDIA LTD.",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 12,
+          "text": "www.arktos.com",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 13,
+          "text": "Facebook",
+          "column": "left",
+          "confidence": 0.95
+        },
+        {
+          "type": "body",
+          "readingOrder": 14,
+          "text": "Twitter",
+          "column": "left",
+          "confidence": 0.95
+        }
+      ]
+    },
+    {
+      "pageNumber": 4,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 5,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 6,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": true,
+      "backMatterType": "bibliography",
+      "hasFootnotes": false,
+      "footnoteNumbers": [],
+      "footnoteReferences": [],
+      "regions": [
+        {
+          "type": "body",
+          "readingOrder": 1,
+          "text": "CONTENTS\n\nIntroduction\nThe Spectral Revolution\nFringe Science\nReason and Terror\nStorming Heaven\nThe Titanic Total Artwork\nThe Occultation of Supernature\nWorlds at War over Earth\nThe Postmodern Prometheus\nAtlas of the New Atlantis\nKill a Buddha on the Way\nBeing Bound for Freedom\nMercurial Hermeneutics\nBibliography",
+          "column": "full",
+          "confidence": 1
+        }
+      ]
+    },
+    {
+      "pageNumber": 7,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 8,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 9,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 10,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 11,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 12,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 13,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 14,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 15,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 16,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 17,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 18,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 19,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 20,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 21,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 22,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 23,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 24,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 25,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "regions": [],
+      "footnoteReferences": [],
+      "footnoteNumbers": []
+    },
+    {
+      "pageNumber": 26,
+      "layout": "single_column",
+      "isChapterStart": false,
+      "chapterTitle": null,
+      "isBackMatter": false,
+      "backMatterType": null,
+      "hasFootnotes": false,
+      "footnoteNumbers": [],
+      "footnoteReferences": [],
+      "regions": [],
+      "_skipped": true
+    }
+  ]
+}
