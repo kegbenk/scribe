@@ -204,6 +204,21 @@ extension ScribeProcessor {
         // Skip tiny images (likely decorative: bullets, line separators, etc.)
         guard width >= 50 && height >= 50 else { return }
 
+        // Skip page-rasters: XObjects whose pixel dimensions imply they cover
+        // the entire page at ≥150dpi. Real figures embedded in digital books
+        // rarely exceed ~1.5 megapixels; scanned pages at 200dpi are 3-4 MP
+        // and at 150dpi are ~2 MP. Even when the book classifier misses
+        // .scannedOCR (e.g. when the OCR text layer is dense enough that pages
+        // don't look "illustrated"), the page-raster XObjects themselves are
+        // a clear giveaway via pixel area.
+        let pageWPts = context.pointee.pageRect.width   // 1pt = 1/72 inch
+        let pageHPts = context.pointee.pageRect.height
+        let pageAt150dpi = (pageWPts * 150.0 / 72.0) * (pageHPts * 150.0 / 72.0)
+        let imgPixelArea = CGFloat(width) * CGFloat(height)
+        if pageWPts > 0, pageHPts > 0, imgPixelArea > pageAt150dpi * 0.7 {
+            return
+        }
+
         // Get the raw image data
         var format: CGPDFDataFormat = .raw
         guard let data = CGPDFStreamCopyData(pdfStream, &format) else { return }
