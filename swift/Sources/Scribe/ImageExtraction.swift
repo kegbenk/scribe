@@ -16,6 +16,17 @@ extension ScribeProcessor {
         let pageRect = page.bounds(for: .mediaBox)
         let pageRotation = page.rotation  // 0, 90, 180, 270
 
+        // Scanned books store every page as one full-page JPEG XObject. Method 1
+        // would happily extract those as "figures" and downstream renderers would
+        // sprinkle full-page rasters into RSVP playback. Method 2 already refuses
+        // page rasters via its `textLength < 100` guard; honor the same intent in
+        // Method 1 by skipping image extraction wholesale on scanned books.
+        // Scanned-OCR books, by definition, don't have meaningful figure XObjects
+        // separate from page rasters — they have one big page-image per page.
+        if bookProfile?.bookType == .scannedOCR {
+            return []
+        }
+
         // Method 1: Extract images from the PDF page's content streams via CGPDFPage
         // Handles DCTDecode (JPEG) and raw pixel data directly.
         let pageImages = extractImagesFromCGPDFPage(cgPage: cgPage, pageRect: pageRect, pageIndex: pageIndex, seenHashes: &seenHashes, pageRotation: pageRotation)
