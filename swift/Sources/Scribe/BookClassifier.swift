@@ -1,6 +1,7 @@
-import Foundation
-import PDFKit
 import CoreGraphics
+import Foundation
+import NaturalLanguage
+import PDFKit
 
 extension ScribeProcessor {
 
@@ -22,6 +23,7 @@ extension ScribeProcessor {
         var totalSampledLines = 0
         var fontSizeVariances: [CGFloat] = []
         var globalFontBuckets: [Int: Int] = [:]  // font size bucket → count across all pages
+        var sampledTextForLanguage = ""  // Accumulate text for language detection
 
         let citationRe = try! NSRegularExpression(
             pattern: #"([Ii]bid\.?|[Cc]f\.|op\.?\s*cit|supra|infra|[Pp]p?\.\s*\d|[Vv]ol\.\s*[IVX\d]|\(\d{4}\)|\bn\.\s*\d)"#
@@ -74,6 +76,11 @@ extension ScribeProcessor {
                 globalFontBuckets[bucket, default: 0] += 1
             }
 
+            // Accumulate text for language detection (first ~2000 chars is enough)
+            if sampledTextForLanguage.count < 2000 {
+                sampledTextForLanguage += lines.map(\.text).joined(separator: " ")
+            }
+
             // Check for illustrated scan pages: has image XObjects but sparse text
             let totalTextChars = lines.reduce(0) { $0 + $1.text.count }
             if let cgPage = page.pageRef, let dict = cgPage.dictionary {
@@ -113,18 +120,28 @@ extension ScribeProcessor {
             return a.key < b.key
         }).map { CGFloat($0.key) / 10.0 }
 
+        // Detect document language from sampled text
+        var detectedLanguage: String? = nil
+        if !sampledTextForLanguage.isEmpty {
+            let recognizer = NLLanguageRecognizer()
+            recognizer.processString(sampledTextForLanguage)
+            detectedLanguage = recognizer.dominantLanguage?.rawValue
+        }
+
         let profile = BookProfile(
             bookType: bookType,
             contentType: contentType,
             isTwoColumn: isTwoColumn,
-            globalBodyFont: globalBodyFont
+            globalBodyFont: globalBodyFont,
+            detectedLanguage: detectedLanguage
         )
 
-        NSLog("[ScribeProcessor] Book classified: type=%@, content=%@, twoColumn=%d, globalBodyFont=%.1f (sampled %d pages, %d citations, avgFontVar=%.1f)",
+        NSLog("[ScribeProcessor] Book classified: type=%@, content=%@, twoColumn=%d, globalBodyFont=%.1f, language=%@ (sampled %d pages, %d citations, avgFontVar=%.1f)",
               bookType == .scannedOCR ? "scannedOCR" : "digitalClean",
               contentType == .academic ? "academic" : "general",
               isTwoColumn ? 1 : 0,
               globalBodyFont ?? 0,
+              detectedLanguage ?? "unknown",
               sampleCount, citationLineCount, avgFontVariance)
 
         return profile

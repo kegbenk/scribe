@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import NaturalLanguage
 import PDFKit
 import Vision
 
@@ -42,6 +43,9 @@ public class ScribeProcessor {
         /// Global body font size computed from sampled pages. Used as override when
         /// per-column font bucketing picks the wrong font (footnote font > body font count).
         let globalBodyFont: CGFloat?
+        /// Detected document language (BCP 47 tag, e.g. "en", "fr", "de").
+        /// Used to configure Vision OCR recognition languages.
+        let detectedLanguage: String?
 
         /// True when footnote detection should prioritize content-based strategies
         /// (citation patterns) over layout-based strategies (font size, gaps).
@@ -122,22 +126,44 @@ public class ScribeProcessor {
         // Detect chapter structure BEFORE stripping running headers,
         // since chapter titles on title pages are the same text as running headers
         let outline = extractOutline(pdfDoc: pdfDoc)
-        var chapterOutline: [(title: String, pageIndex: Int)]
+        var chapterOutline: [OutlineItem]
         var hasStructure = false
+
+        print("[Scribe] PDF outline: \(outline.count) items, outlineRoot: \(pdfDoc.outlineRoot != nil)")
+        if !outline.isEmpty {
+            for (i, item) in outline.prefix(5).enumerated() {
+                print("[Scribe]   outline[\(i)]: L\(item.level) \"\(item.title)\" → page \(item.pageIndex)")
+            }
+            if outline.count > 5 { print("[Scribe]   ... and \(outline.count - 5) more") }
+        }
 
         if !outline.isEmpty {
             // Outline gives PDF page indices, but pageExtractions uses logical indices
             // (two-column pages produce 2 logical pages per PDF page). Map accordingly.
             chapterOutline = outline.map { item in
                 let logicalIndex = pageExtractions.firstIndex(where: { $0.pdfPageIndex == item.pageIndex }) ?? item.pageIndex
-                return (title: item.title, pageIndex: logicalIndex)
+                return OutlineItem(title: item.title, pageIndex: logicalIndex, level: item.level)
             }
             hasStructure = true
         } else {
-            chapterOutline = parseChaptersFromContentsPage(pageExtractions: pageExtractions, pageCount: pageExtractions.count, pdfDoc: pdfDoc)
+            let flatOutline = parseChaptersFromContentsPage(pageExtractions: pageExtractions, pageCount: pageExtractions.count, pdfDoc: pdfDoc)
+            chapterOutline = flatOutline.map { OutlineItem(title: $0.title, pageIndex: $0.pageIndex, level: 0) }
+            print("[Scribe] TOC parser: \(chapterOutline.count) chapters found")
             if !chapterOutline.isEmpty {
-                NSLog("[ScribeProcessor] Parsed %d chapters from Contents page text", chapterOutline.count)
+                for (i, item) in chapterOutline.prefix(5).enumerated() {
+                    print("[Scribe]   toc[\(i)]: \"\(item.title)\" → page \(item.pageIndex)")
+                }
                 hasStructure = true
+            }
+
+            // Third fallback: scan page text for chapter heading patterns
+            if !hasStructure {
+                let headings = detectChapterHeadingsFromText(pageExtractions: pageExtractions)
+                chapterOutline = headings.map { OutlineItem(title: $0.title, pageIndex: $0.pageIndex, level: 0) }
+                print("[Scribe] Heading scanner: \(chapterOutline.count) chapters found")
+                if !chapterOutline.isEmpty {
+                    hasStructure = true
+                }
             }
         }
 
@@ -154,7 +180,7 @@ public class ScribeProcessor {
                 if !backMatterHeaders.isEmpty {
                     NSLog("[ScribeProcessor] Pre-strip: detected %d back-matter sections after '%@'", backMatterHeaders.count, lastEntry.title)
                     backMatterStartIndex = chapterOutline.count
-                    chapterOutline.append(contentsOf: backMatterHeaders)
+                    chapterOutline.append(contentsOf: backMatterHeaders.map { OutlineItem(title: $0.title, pageIndex: $0.pageIndex, level: 0) })
                 }
             }
         }

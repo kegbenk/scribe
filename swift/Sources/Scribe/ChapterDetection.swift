@@ -6,19 +6,20 @@ extension ScribeProcessor {
 
     // MARK: - Outline / TOC Extraction
 
-    func extractOutline(pdfDoc: PDFDocument) -> [(title: String, pageIndex: Int)] {
+    struct OutlineItem {
+        let title: String
+        let pageIndex: Int
+        let level: Int
+    }
+
+    func extractOutline(pdfDoc: PDFDocument) -> [OutlineItem] {
         guard let root = pdfDoc.outlineRoot else { return [] }
-        var items: [(title: String, pageIndex: Int)] = []
-        collectOutlineItems(outline: root, pdfDoc: pdfDoc, items: &items)
-        // When multiple outline items share the same page (nested sections),
-        // keep only the first (top-level) one per page. DFS order ensures
-        // parents come before children, so the first item is the broadest heading.
-        var seenPages = Set<Int>()
-        items = items.filter { seenPages.insert($0.pageIndex).inserted }
+        var items: [OutlineItem] = []
+        collectOutlineItems(outline: root, pdfDoc: pdfDoc, items: &items, depth: 0)
         return items
     }
 
-    func collectOutlineItems(outline: PDFOutline, pdfDoc: PDFDocument, items: inout [(title: String, pageIndex: Int)]) {
+    private func collectOutlineItems(outline: PDFOutline, pdfDoc: PDFDocument, items: inout [OutlineItem], depth: Int) {
         for i in 0..<outline.numberOfChildren {
             guard let child = outline.child(at: i) else { continue }
             let title = child.label ?? "Untitled"
@@ -28,11 +29,10 @@ extension ScribeProcessor {
                 pageIndex = pdfDoc.index(for: page)
             }
 
-            items.append((title: title, pageIndex: pageIndex))
+            items.append(OutlineItem(title: title, pageIndex: pageIndex, level: depth))
 
-            // Recurse into nested outline levels (e.g., L2 chapters under L1 book title)
             if child.numberOfChildren > 0 {
-                collectOutlineItems(outline: child, pdfDoc: pdfDoc, items: &items)
+                collectOutlineItems(outline: child, pdfDoc: pdfDoc, items: &items, depth: depth + 1)
             }
         }
     }
@@ -811,7 +811,7 @@ extension ScribeProcessor {
     // MARK: - Chapter Building
 
     func buildChaptersFromOutline(
-        outline: [(title: String, pageIndex: Int)],
+        outline: [OutlineItem],
         pageExtractions: [PageExtraction],
         pageCount: Int,
         backMatterStartIndex: Int = Int.max
@@ -829,7 +829,7 @@ extension ScribeProcessor {
                 chapters.append([
                     "id": "pdf-front-matter",
                     "title": "Front Matter",
-                    "level": 1,
+                    "level": 0,
                     "htmlContent": textToHtml(frontText, images: images),
                     "plainText": frontTextClean,
                     "tokens": tokenData.tokens,
@@ -867,7 +867,7 @@ extension ScribeProcessor {
             var chapterDict: [String: Any] = [
                 "id": "pdf-chapter-\(i)",
                 "title": cleanTitle,
-                "level": 1,
+                "level": item.level,
                 "htmlContent": textToHtml(chapterText, images: images),
                 "plainText": chapterTextClean,
                 "tokens": tokenData.tokens,
@@ -923,6 +923,129 @@ extension ScribeProcessor {
         return unique.map { ["number": $0.number, "text": $0.text] }
     }
 
+    /// Scan page text for chapter heading patterns when no outline or TOC is found.
+    /// Looks for "Chapter N", "CHAPTER N", "Part N", numbered headings, and
+    /// ALL CAPS section headings at the top of pages.
+    func detectChapterHeadingsFromText(pageExtractions: [PageExtraction]) -> [(title: String, pageIndex: Int)] {
+        // Patterns that indicate a chapter heading at the start of a page
+        let chapterPatterns: [NSRegularExpression] = [
+            // "Chapter 1", "Chapter I", "Chapter One", "CHAPTER 1"
+            try! NSRegularExpression(pattern: #"^chapter\s+(\d{1,3}|[IVXLC]{1,6}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b"#, options: [.caseInsensitive]),
+            // "Part 1", "Part I", "Part One", "PART ONE"
+            try! NSRegularExpression(pattern: #"^part\s+(\d{1,2}|[IVXLC]{1,6}|one|two|three|four|five|six|seven|eight|nine|ten)\b"#, options: [.caseInsensitive]),
+        ]
+
+        var results: [(title: String, pageIndex: Int)] = []
+
+        for (pageIdx, page) in pageExtractions.enumerated() {
+            let text = page.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+
+            // Check first few lines of the page for chapter headings
+            let lines = text.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            let firstLines = lines.prefix(5).joined(separator: " ")
+
+            var matched = false
+            for pattern in chapterPatterns {
+                let range = NSRange(firstLines.startIndex..<firstLines.endIndex, in: firstLines)
+                if pattern.firstMatch(in: firstLines, range: range) != nil {
+                    // Extract the chapter title: take the matched line + next non-empty line as subtitle
+                    var title = ""
+                    for line in lines.prefix(3) {
+                        let lineRange = NSRange(line.startIndex..<line.endIndex, in: line)
+                        if pattern.firstMatch(in: line, range: lineRange) != nil {
+                            title = line
+                            break
+                        }
+                    }
+
+                    // If next line looks like a subtitle (short, no sentence ending), append it
+                    if let titleLineIdx = lines.prefix(5).firstIndex(where: { $0 == title }),
+                       titleLineIdx + 1 < lines.count {
+                        let nextLine = lines[titleLineIdx + 1]
+                        if nextLine.count < 80 && !nextLine.hasSuffix(".") && !nextLine.hasSuffix("?") {
+                            title = title + ": " + nextLine
+                        }
+                    }
+
+                    if !title.isEmpty {
+                        results.append((title: title, pageIndex: pageIdx))
+                        matched = true
+                    }
+                    break
+                }
+            }
+
+            // Skip ALL CAPS detection if we already matched a pattern on this page
+            if matched { continue }
+
+            // Detect ALL CAPS section headings at the top of pages.
+            // Many non-fiction books use short uppercase lines as section titles
+            // (e.g., "DARWIN SPEAKS", "APPEARANCE OF THE HOMINIDS").
+            if let firstLine = lines.first {
+                let stripped = firstLine.trimmingCharacters(in: CharacterSet.punctuationCharacters.union(.whitespaces))
+                if isAllCapsHeading(stripped) {
+                    results.append((title: firstLine, pageIndex: pageIdx))
+                }
+            }
+        }
+
+        // Need at least 3 chapters to be considered valid structure
+        if results.count >= 3 {
+            return results
+        }
+
+        // ALL CAPS detection can be noisy. If we found some but not enough
+        // with the strict first-line-only check, don't return partial results.
+        return []
+    }
+
+    /// Check if a line looks like an ALL CAPS section heading.
+    /// Must be: all uppercase letters, 3-60 chars, at least 2 letter chars,
+    /// not a running header or page number, and contain at least one space
+    /// (single-word ALL CAPS lines are too ambiguous) OR be a known
+    /// structural keyword (Preface, Introduction, etc.).
+    private func isAllCapsHeading(_ text: String) -> Bool {
+        let stripped = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Headings are short — 60 chars is generous. Longer lines are body text.
+        guard stripped.count >= 3 && stripped.count <= 60 else { return false }
+
+        // Must contain at least 2 letter characters
+        let letterCount = stripped.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
+        guard letterCount >= 2 else { return false }
+
+        // Reject lines containing sentence punctuation — real headings don't
+        // have periods mid-text, quotes, or semicolons
+        if stripped.contains(". ") || stripped.contains("\"") || stripped.contains("\u{201C}")
+            || stripped.contains(";") || stripped.hasSuffix(".") && !stripped.hasSuffix("...")
+            || stripped.contains(",") { return false }
+
+        // Check if it's ALL CAPS (letters are all uppercase)
+        let letters = stripped.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        let isAllCaps = letters.allSatisfy { CharacterSet.uppercaseLetters.contains($0) }
+
+        // Also accept known structural headings that may be title-case
+        let lower = stripped.lowercased()
+        let isStructuralHeading = [
+            "preface", "introduction", "foreword", "prologue", "epilogue",
+            "conclusion", "afterword", "postscript",
+        ].contains(where: { lower == $0 || lower.hasPrefix($0 + " ") })
+
+        guard isAllCaps || isStructuralHeading else { return false }
+
+        // Reject single words unless they're known structural headings —
+        // single ALL CAPS words are too often running headers or labels
+        if !stripped.contains(" ") && !isStructuralHeading { return false }
+
+        // Reject lines that look like page numbers or roman numerals alone
+        if stripped.range(of: #"^[IVXLC]+\.?$"#, options: .regularExpression) != nil { return false }
+        if stripped.range(of: #"^\d+$"#, options: .regularExpression) != nil { return false }
+
+        return true
+    }
+
     func buildPageBasedChapters(pageExtractions: [PageExtraction], fileName: String) -> [[String: Any]] {
         var chapters: [[String: Any]] = []
         let totalPages = pageExtractions.count
@@ -951,7 +1074,7 @@ extension ScribeProcessor {
             chapters.append([
                 "id": "pdf-page-\(pageStart)",
                 "title": title,
-                "level": 1,
+                "level": 0,
                 "htmlContent": textToHtml(chapterText, images: images),
                 "plainText": chapterTextClean,
                 "tokens": tokenData.tokens,

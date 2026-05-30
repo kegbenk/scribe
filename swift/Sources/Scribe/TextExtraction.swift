@@ -613,6 +613,11 @@ extension ScribeProcessor {
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
 
+        // Use detected language to improve OCR accuracy
+        if let lang = bookProfile?.detectedLanguage {
+            request.recognitionLanguages = [lang]
+        }
+
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         do {
             try handler.perform([request])
