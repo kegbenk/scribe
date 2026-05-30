@@ -33,6 +33,10 @@
     },
     "metadata": {
       "$ref": "#/$defs/Metadata"
+    },
+    "intelligence": {
+      "$ref": "#/$defs/Intelligence",
+      "description": "On-device intelligence analysis. Present when processed with Apple Intelligence (summary, classification) or NLP-only mode (language, entities)."
     }
   },
   "$defs": {
@@ -94,6 +98,31 @@
           "type": "string",
           "enum": ["native", "marker", "epub", "text"],
           "description": "Which parser produced this chapter's content."
+        },
+        "entities": {
+          "$ref": "#/$defs/ChapterEntities",
+          "description": "Named entities detected in this chapter via NaturalLanguage framework. Present when intelligence analysis is enabled."
+        }
+      }
+    },
+    "ChapterEntities": {
+      "type": "object",
+      "description": "Named entities extracted from a chapter via on-device NLP.",
+      "properties": {
+        "people": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Person names detected in the chapter."
+        },
+        "places": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Place names detected in the chapter."
+        },
+        "organizations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Organization names detected in the chapter."
         }
       }
     },
@@ -151,6 +180,76 @@
         "chapterIndex": {
           "type": "integer",
           "description": "Index into the chapters array."
+        }
+      }
+    },
+    "Intelligence": {
+      "type": "object",
+      "description": "On-device intelligence analysis from Apple Intelligence and NaturalLanguage frameworks.",
+      "properties": {
+        "summary": {
+          "type": "object",
+          "description": "AI-generated document summary. Requires Apple Intelligence.",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Concise summary of the document."
+            },
+            "keyPoints": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Key points or main arguments."
+            },
+            "topics": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Primary topics or themes."
+            }
+          }
+        },
+        "classification": {
+          "type": "object",
+          "description": "AI-generated document classification. Requires Apple Intelligence.",
+          "properties": {
+            "genre": {
+              "type": "string",
+              "enum": ["Fiction", "Non-Fiction", "Academic", "Technical", "Legal", "Medical", "Poetry", "Reference", "Journalism"]
+            },
+            "subject": {
+              "type": "string",
+              "description": "Primary subject area."
+            },
+            "readingLevel": {
+              "type": "string",
+              "enum": ["Elementary", "Intermediate", "Advanced", "Expert"]
+            },
+            "audience": {
+              "type": "string",
+              "description": "Intended audience."
+            },
+            "tone": {
+              "type": "string",
+              "enum": ["Formal", "Informal", "Academic", "Conversational", "Technical", "Literary", "Journalistic"]
+            }
+          }
+        },
+        "language": {
+          "type": "object",
+          "description": "Detected document language via NaturalLanguage framework.",
+          "properties": {
+            "dominant": {
+              "type": "string",
+              "description": "BCP 47 language tag (e.g., 'en', 'fr', 'de')."
+            },
+            "confidence": {
+              "type": "number",
+              "description": "Confidence score (0.0 to 1.0)."
+            }
+          }
+        },
+        "entities": {
+          "$ref": "#/$defs/ChapterEntities",
+          "description": "Global named entities across the entire document."
         }
       }
     },
