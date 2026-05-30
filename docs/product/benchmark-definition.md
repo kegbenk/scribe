@@ -51,6 +51,32 @@ Profile coverage:
 
 **Policy**: changes that touch extraction logic require a regression run **before merge**. New baselines must be justified in the commit / PR body.
 
+### Regenerating predicted.json from current code
+
+Source PDFs are not tracked in this repo (they're large and some are user-specific). Each book's PDF lives wherever you keep it — locally under `corpus/<book>/source.pdf` or on an external drive — and `corpus/sources.json` (gitignored) maps each book slug to its path. Format is documented in `corpus/sources.example.json`.
+
+```bash
+# Build the CLI once
+(cd swift && swift build)
+
+# Copy the example and fill in your PDF paths
+cp corpus/sources.example.json corpus/sources.json
+$EDITOR corpus/sources.json
+
+# Regenerate predicted.json for every book whose source is reachable
+node eval/regenerate.js
+
+# Or for one book
+node eval/regenerate.js --book healing-dream
+
+# Or regenerate AND re-lock baselines (use with care — this commits to the new scores)
+node eval/regenerate.js --lock
+```
+
+Missing-source books are skipped with a clear per-book warning. The regression gate then runs against whatever `predicted.json` is on disk — books you didn't regenerate keep their previous predicted.json and the regression check is the same as before.
+
+**Until all 8 books' PDFs are configured in `corpus/sources.json`, the regression gate is partial.** Books without a current-code regeneration may still pass trivially against stale baselines. Be honest about coverage when reporting results.
+
 ## Mapping to the bootstrap plan's benchmark categories
 
 The bootstrap plan lists 6 minimum benchmark categories. Current coverage:

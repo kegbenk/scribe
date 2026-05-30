@@ -22,6 +22,11 @@ __pycache__/
 corpus/*/pages/
 corpus/*/ai-annotations/
 
+# Source PDFs are not tracked. Point corpus/sources.json (also gitignored)
+# at local or external-drive paths — see corpus/sources.example.json.
+corpus/*/source.pdf
+corpus/sources.json
+
 # OS
 .DS_Store
 Thumbs.db

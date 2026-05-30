@@ -1,0 +1,18 @@
+{
+  "_comment": "Copy this file to corpus/sources.json (gitignored) and fill in paths to your local source PDFs. Source PDFs are not tracked in this repo — see .gitignore and docs/product/benchmark-definition.md. Each value is a path to the PDF, resolved relative to the repo root. The literal string \"default\" means corpus/<slug>/source.pdf. Set a book to null or omit it to skip during regeneration.",
+
+  "books": {
+    "911-commission":      "default",
+    "alice-wonderland":    "default",
+    "anatomy-melancholy":  "default",
+    "attention-paper":     "default",
+    "healing-dream":       "default",
+    "janus-faces":         "default",
+    "prometheus-atlas":    "default",
+    "self-help-smiles":    "default",
+    "sherlock-holmes":     "default",
+
+    "_external_drive_example": "/Volumes/X10Pro/scribe-corpus/healing-dream.pdf",
+    "_home_dir_example":       "~/Documents/scribe-sources/janus-faces.pdf"
+  }
+}
