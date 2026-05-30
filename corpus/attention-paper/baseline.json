@@ -1,7 +1,7 @@
 {
   "book": "attention-paper",
   "locked": "2026-05-30",
-  "note": "Re-baselined after ADR-0004 (nested-outline contract). native.json still reflects old flat-outline annotations; full corpus re-annotation pass pending.",
+  "note": "Re-locked after ADR-0004 (nested-outline contract). native.json still reflects pre-2026-05-30 flat-outline annotations; chapter_boundaries / chapter_titles deltas are artifactual where native ground truth disagrees with the new contract. Re-annotation of native.json is tracked in BACKLOG.md.",
   "overall": 0.9166792902079213,
   "dimensions": {
     "chapter_boundaries": 1,
