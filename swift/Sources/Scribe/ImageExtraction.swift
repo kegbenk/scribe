@@ -124,38 +124,41 @@ extension ScribeProcessor {
         guard CGPDFDictionaryGetDictionary(resources, "XObject", &xObjectDict),
               let xObjects = xObjectDict else { return [] }
 
-        var images: [ExtractedImage] = []
-
         // Iterate through XObjects looking for images
-        var context = XObjectIteratorContext(
-            images: &images,
+        let context = XObjectIteratorContext(
             pageIndex: pageIndex,
             pageRect: pageRect,
-            seenHashes: &seenHashes,
+            seenHashes: seenHashes,
             pageRotation: pageRotation
         )
 
-        withUnsafeMutablePointer(to: &context) { contextPtr in
-            CGPDFDictionaryApplyBlock(xObjects, { key, value, info in
-                guard let info = info else { return true }
-                let ctx = info.assumingMemoryBound(to: XObjectIteratorContext.self)
-                ScribeProcessor.processXObject(key: key, object: value, context: ctx)
-                return true
-            }, contextPtr)
-        }
+        CGPDFDictionaryApplyBlock(xObjects, { key, value, info in
+            guard let info = info else { return true }
+            let ctx = Unmanaged<XObjectIteratorContext>.fromOpaque(info).takeUnretainedValue()
+            ScribeProcessor.processXObject(key: key, object: value, context: ctx)
+            return true
+        }, Unmanaged.passUnretained(context).toOpaque())
 
-        return images
+        seenHashes = context.seenHashes
+        return context.images
     }
 
-    struct XObjectIteratorContext {
-        var images: UnsafeMutablePointer<[ExtractedImage]>
+    final class XObjectIteratorContext {
+        var images: [ExtractedImage] = []
         let pageIndex: Int
         let pageRect: CGRect
-        var seenHashes: UnsafeMutablePointer<Set<Int>>
+        var seenHashes: Set<Int>
         let pageRotation: Int  // PDF page rotation (0, 90, 180, 270)
+
+        init(pageIndex: Int, pageRect: CGRect, seenHashes: Set<Int>, pageRotation: Int) {
+            self.pageIndex = pageIndex
+            self.pageRect = pageRect
+            self.seenHashes = seenHashes
+            self.pageRotation = pageRotation
+        }
     }
 
-    static func processXObject(key: UnsafePointer<CChar>, object: CGPDFObjectRef, context: UnsafeMutablePointer<XObjectIteratorContext>) {
+    static func processXObject(key: UnsafePointer<CChar>, object: CGPDFObjectRef, context: XObjectIteratorContext) {
         var stream: CGPDFStreamRef?
         guard CGPDFObjectGetValue(object, .stream, &stream),
               let pdfStream = stream else { return }
@@ -184,8 +187,8 @@ extension ScribeProcessor {
         // .scannedOCR (e.g. when the OCR text layer is dense enough that pages
         // don't look "illustrated"), the page-raster XObjects themselves are
         // a clear giveaway via pixel area.
-        let pageWPts = context.pointee.pageRect.width   // 1pt = 1/72 inch
-        let pageHPts = context.pointee.pageRect.height
+        let pageWPts = context.pageRect.width   // 1pt = 1/72 inch
+        let pageHPts = context.pageRect.height
         let pageAt150dpi = (pageWPts * 150.0 / 72.0) * (pageHPts * 150.0 / 72.0)
         let imgPixelArea = CGFloat(width) * CGFloat(height)
         if pageWPts > 0, pageHPts > 0, imgPixelArea > pageAt150dpi * 0.7 {
@@ -201,8 +204,8 @@ extension ScribeProcessor {
 
         // Deduplicate by content hash
         let hash = dataLength &+ Int(width) &* 31 &+ Int(height) &* 97
-        guard !context.pointee.seenHashes.pointee.contains(hash) else { return }
-        context.pointee.seenHashes.pointee.insert(hash)
+        guard !context.seenHashes.contains(hash) else { return }
+        context.seenHashes.insert(hash)
 
         // Try to create a CGImage from the PDF image data
         let imgWidth = Int(width)
@@ -254,7 +257,7 @@ extension ScribeProcessor {
 
         // Apply page rotation to the extracted image if needed.
         // Raw XObject data is stored unrotated; we must apply the page's /Rotate.
-        let rotation = context.pointee.pageRotation
+        let rotation = context.pageRotation
         if rotation != 0, let srcImage = ScribeGraphics.cgImage(fromData: imageData) {
             if let rotated = ScribeGraphics.rotateImage(srcImage, degrees: rotation),
                let rotatedData = ScribeGraphics.jpegData(from: rotated, quality: 0.7) {
@@ -270,11 +273,11 @@ extension ScribeProcessor {
                compressed.count < 500_000 {
                 let base64 = compressed.base64EncodedString()
                 let dataURI = "data:image/jpeg;base64,\(base64)"
-                context.pointee.images.pointee.append(ExtractedImage(
+                context.images.append(ExtractedImage(
                     dataURI: dataURI,
                     width: imgWidth,
                     height: imgHeight,
-                    pageIndex: context.pointee.pageIndex,
+                    pageIndex: context.pageIndex,
                     yPosition: 0.5
                 ))
             }
@@ -285,11 +288,11 @@ extension ScribeProcessor {
         let mimeType = isJPEG ? "image/jpeg" : "image/jpeg"
         let dataURI = "data:\(mimeType);base64,\(base64)"
 
-        context.pointee.images.pointee.append(ExtractedImage(
+        context.images.append(ExtractedImage(
             dataURI: dataURI,
             width: imgWidth,
             height: imgHeight,
-            pageIndex: context.pointee.pageIndex,
+            pageIndex: context.pageIndex,
             yPosition: 0.5 // Default to middle of page; refined later if position info available
         ))
     }
