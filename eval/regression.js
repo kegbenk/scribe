@@ -18,6 +18,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { scoreFidelity, formatFidelityReport } from './score.js';
+import { validateContentStructure } from './validate-schema.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -94,6 +95,36 @@ if (books.length === 0) {
 console.error(`\n=== PDF Fidelity Regression Check ===`);
 console.error(`Books: ${books.join(', ')}`);
 console.error(`Tolerance: ${(tolerance * 100).toFixed(1)}% per dimension\n`);
+
+// Gate 1: schema validity. Every predicted.json in the corpus must satisfy the
+// published contentStructure contract (shared/content-structure.schema.json)
+// before we bother scoring fidelity — a schema violation is a broken producer,
+// not a fidelity regression, and must fail the run loudly. This covers books
+// even without a native.json (e.g. anatomy-melancholy), since the contract
+// applies to output shape regardless of whether we score its fidelity. (1.0 gate #4.)
+console.error(`=== Schema Validation ===`);
+const predictedBooks = readdirSync(FIDELITY_DIR, { withFileTypes: true })
+  .filter(d => d.isDirectory() && existsSync(join(FIDELITY_DIR, d.name, 'predicted.json')))
+  .map(d => d.name);
+let schemaAllValid = true;
+for (const slug of predictedBooks) {
+  const predicted = JSON.parse(readFileSync(join(FIDELITY_DIR, slug, 'predicted.json'), 'utf-8'));
+  const { valid, errors } = validateContentStructure(predicted);
+  if (valid) {
+    console.error(`  ✓ ${slug}: schema-valid`);
+  } else {
+    schemaAllValid = false;
+    console.error(`  ✗ ${slug}: ${errors.length} schema violation(s)`);
+    for (const e of errors.slice(0, 20)) console.error(`      ${e}`);
+    if (errors.length > 20) console.error(`      … and ${errors.length - 20} more`);
+  }
+}
+if (!schemaAllValid) {
+  console.error(`\nFAILED — predicted.json does not match shared/content-structure.schema.json`);
+  console.error(`Fix the producer (Swift CLI) or the schema; never mask a contract break.`);
+  process.exit(1);
+}
+console.error(`  All ${predictedBooks.length} predictions match the contentStructure contract.\n`);
 
 let allPassed = true;
 const results = [];

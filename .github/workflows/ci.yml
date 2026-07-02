@@ -29,6 +29,12 @@ jobs:
         with:
           node-version: '22'
 
+      # The eval harness now depends on ajv for schema validation of every
+      # predicted.json against shared/content-structure.schema.json.
+      - name: Install eval dependencies
+        working-directory: eval
+        run: npm ci
+
       # Source PDFs are not tracked. Fetch attention-paper (small, stable arXiv
       # URL) and re-extract it with the just-built CLI so the scorer below
       # exercises the live pipeline, not just the committed prediction.

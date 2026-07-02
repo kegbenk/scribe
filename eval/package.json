@@ -10,5 +10,9 @@
     "regression": "node regression.js",
     "regenerate": "node regenerate.js",
     "perf": "node perf.js"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
   }
 }

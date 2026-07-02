@@ -23,7 +23,7 @@ Reach stable-for-external-consumers (1.0) and announce.
 1. **Schema churn has slowed** — no breaking `contentStructure` change for a full minor-release cycle (0.3.x → 0.4.0). Additive fields don't reset the clock.
 2. **Regression runs are repeatable by a stranger** — fresh clone + `corpus/download.sh` + documented steps reproduces the gate on the publicly downloadable books (satisfied today for 9 of 10 books; janus-faces source remains private).
 3. **One consumer contract exercised end-to-end at runtime** — not just a build: rsvp-reader's Capacitor bridge (or velo-macos import flow) returns schema-valid `contentStructure` from a real document in the running app, against the release candidate.
-4. **Schema validation automated** — ajv check of every `predicted.json` in the regression run (BACKLOG item).
+4. ✅ **Schema validation automated** — done 2026-07-02. `eval/regression.js` validates every `corpus/*/predicted.json` against `shared/content-structure.schema.json` (Ajv2020, draft 2020-12, + ajv-formats) before scoring; any violation fails the run with per-book errors. CI installs the eval deps (`npm ci` in `eval/`) ahead of the regression step.
 5. **Public API diff reviewed at tag time** — no undocumented breaking change vs the prior tag (tooling queued in BACKLOG; manual review acceptable).
 
 ## Not Yet A Release Gate
