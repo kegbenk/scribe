@@ -29,6 +29,8 @@ Closes the exit criteria in `MILESTONE_GATES.md`.
 The plan's Phase 1 ("single-document MVP core"). Most of extraction is done; what's missing is retrieval, citation, and intelligence eval.
 
 - [ ] **Capture latency + peak memory per book** in regression runs (`eval/perf.js`). Wire into the regression report.
+- [ ] **EPUB footnote separation** — `epub:type="footnote"` / `role="doc-footnote"` extraction into the `footnotes` array (the EPUB path currently emits `footnotes: []`; see ADR-0005).
+- [ ] **EPUB book in the eval corpus** — hand-annotate one public-domain EPUB (`native.json`) so the fidelity gate exercises the EPUB path, not just unit tests.
 - [ ] **Define citation-span format** — a typed object identifying `(chapter_index, start_word_index, end_word_index)` and serializable to the schema. Needed before answer-with-evidence is meaningful.
 - [ ] **Add an answer-with-evidence structured output** (schema-validated). Initial implementation can be `DocumentIntelligence.ask(_:context:)` returning `{ answer, citations[], confidence }` — the public `ask` method exists, the structured output doesn't.
 - [ ] **Build a chunking strategy** with stable IDs across re-runs. Chunks should reference word indices (same tokenizer as everywhere else).

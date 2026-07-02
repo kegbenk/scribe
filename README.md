@@ -1,6 +1,6 @@
 # Scribe
 
-On-device PDF content extraction for iOS and macOS. Produces structured chapter/footnote/image output from any PDF using only Apple frameworks (PDFKit, Vision, CoreGraphics) — no server, no network, no ML models required.
+On-device PDF and EPUB content extraction for iOS and macOS. Produces structured chapter/footnote/image output using only Apple frameworks (PDFKit, Vision, CoreGraphics, Foundation) — no server, no network, no ML models, no third-party dependencies.
 
 ## Why Scribe?
 
@@ -14,7 +14,7 @@ On-device PDF content extraction for iOS and macOS. Produces structured chapter/
 | **Output format** | contentStructure JSON | Markdown/JSON | Markdown | Markdown |
 | **Processing time** | 1-5s (on-device) | 30-120s (GPU) | 60-300s (GPU) | 60-300s (GPU) |
 
-Scribe is purpose-built for the niche no competitor occupies: **fast, private, on-device PDF extraction** that produces reading-app-ready structured output.
+Scribe is purpose-built for the niche no competitor occupies: **fast, private, on-device document extraction** that produces reading-app-ready structured output. PDF and EPUB go through the same pipeline and emit the same contract: one integration, both formats.
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ dependencies: [
 ```swift
 import Scribe
 
-// Extract structured content from a PDF
+// Extract structured content from a PDF or EPUB
 if let result = ScribeProcessor.extractContent(from: pdfURL) {
     let text = result["text"] as! String
     let chapters = result["chapters"] as! [[String: Any]]

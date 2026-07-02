@@ -42,7 +42,8 @@ let package = Package(
         .testTarget(
             name: "ScribeTests",
             dependencies: ["Scribe"],
-            path: "Tests/ScribeTests"
+            path: "Tests/ScribeTests",
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

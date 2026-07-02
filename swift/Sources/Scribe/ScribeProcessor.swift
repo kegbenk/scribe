@@ -8,7 +8,7 @@ public class ScribeProcessor {
 
     // MARK: - Public API
 
-    /// Extract content from a PDF file.
+    /// Extract content from a PDF or EPUB file.
     /// Returns a dictionary with "text", "chapters", "hasStructure" keys.
     public static func extractContent(from url: URL) -> [String: Any]? {
         let processor = ScribeProcessor()
@@ -99,6 +99,9 @@ public class ScribeProcessor {
     }
 
     func processFileForResult(url: URL) -> (text: String, chapters: [[String: Any]], hasStructure: Bool)? {
+        if EPUBProcessor.isEPUB(url: url) {
+            return EPUBProcessor.processFileForResult(url: url)
+        }
         guard let pdfDoc = PDFDocument(url: url) else { return nil }
         let pageCount = pdfDoc.pageCount
         guard pageCount > 0 else { return nil }

@@ -36,7 +36,7 @@ Any change to tokenization rules is a breaking change. It must:
 ### 3. CLI contract
 
 **Location:** [`../swift/Sources/ScribeCLI/ScribeCLI.swift`](../swift/Sources/ScribeCLI/ScribeCLI.swift)
-**Surface:** `scribe-cli extract <path> [--format json|text] [--output path] [--entities]`, `scribe-cli analyze <path> [--output path]` (`--entities` and `analyze` require iOS/macOS 26+)
+**Surface:** `scribe-cli extract <path> [--format json|text] [--output path] [--entities]`, `scribe-cli analyze <path> [--output path]` (`--entities` and `analyze` require iOS/macOS 26+). `<path>` may be a PDF or an EPUB — format is dispatched inside `ScribeProcessor` (extension, falling back to zip-magic + mimetype sniffing), see [ADR-0005](architecture/adr/0005-epub-extraction-in-repo.md).
 **Status:** Loose. Used by developers and by `vision/` / `converters/` tooling. Not a versioned contract.
 
 ## Contracts the bootstrap plan calls for, that DO NOT exist yet

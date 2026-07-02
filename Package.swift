@@ -27,7 +27,8 @@ let package = Package(
         .testTarget(
             name: "ScribeTests",
             dependencies: ["Scribe"],
-            path: "swift/Tests/ScribeTests"
+            path: "swift/Tests/ScribeTests",
+            resources: [.copy("Fixtures")]
         ),
     ]
 )
