@@ -111,6 +111,33 @@ final class EPUBExtractionTests: XCTestCase {
         XCTAssertEqual(entries.map(\.level), [0, 0, 1])
     }
 
+    func testFootnoteSeparation() throws {
+        let result = try XCTUnwrap(ScribeProcessor.processForTest(url: fixtureURL))
+
+        // ch1: numbered <aside epub:type="footnote">
+        let ch1Notes = try XCTUnwrap(result.chapters[1]["footnotes"] as? [[String: Any]])
+        XCTAssertEqual(ch1Notes.count, 1)
+        XCTAssertEqual(ch1Notes[0]["number"] as? Int, 1)
+        XCTAssertEqual(ch1Notes[0]["text"] as? String, "Close reading was, at the time, considered a radical act.")
+
+        // Footnote text must not leak into body text
+        let ch1Text = try XCTUnwrap(result.chapters[1]["plainText"] as? String)
+        XCTAssertFalse(ch1Text.contains("radical act"))
+        // The inline noteref marker stays in the body
+        XCTAssertTrue(ch1Text.contains("close reading.1") || ch1Text.contains("close reading. 1"))
+
+        // ch2's unnumbered role="doc-footnote" sits after the #sec2 anchor,
+        // so it belongs to the nested-section chapter and gets number 1
+        let sectionNotes = try XCTUnwrap(result.chapters[3]["footnotes"] as? [[String: Any]])
+        XCTAssertEqual(sectionNotes.count, 1)
+        XCTAssertEqual(sectionNotes[0]["number"] as? Int, 1)
+        XCTAssertEqual(sectionNotes[0]["text"] as? String, "Unnumbered note attached to the nested section.")
+        let ch2Notes = try XCTUnwrap(result.chapters[2]["footnotes"] as? [[String: Any]])
+        XCTAssertTrue(ch2Notes.isEmpty)
+        let sectionText = try XCTUnwrap(result.chapters[3]["plainText"] as? String)
+        XCTAssertFalse(sectionText.contains("Unnumbered note"))
+    }
+
     func testZipReaderRoundTrip() throws {
         let zip = try XCTUnwrap(ZipReader(url: fixtureURL))
         let mimetype = try XCTUnwrap(zip.contents(of: "mimetype"))

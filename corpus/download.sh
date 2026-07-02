@@ -15,6 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# slug|url[|dest-filename]   (dest defaults to source.pdf)
 BOOKS="
 self-help-smiles|https://archive.org/download/selfhelpwithillu00smilrich/selfhelpwithillu00smilrich.pdf
 sherlock-holmes|https://archive.org/download/adventures-sherlock-holmes/adventures-sherlock-holmes.pdf
@@ -23,6 +24,7 @@ attention-paper|https://arxiv.org/pdf/1706.03762
 alice-wonderland|https://archive.org/download/adventuresalices00carrrich/adventuresalices00carrrich.pdf
 911-commission|https://www.govinfo.gov/content/pkg/GPO-911REPORT/pdf/GPO-911REPORT.pdf
 anatomy-melancholy|https://archive.org/download/anatomyofmelanch1868burt/anatomyofmelanch1868burt.pdf
+pride-prejudice|https://www.gutenberg.org/ebooks/1342.epub.noimages|source.epub
 "
 
 FILTER="${1:-all}"
@@ -34,14 +36,19 @@ matched=0
 
 for entry in $BOOKS; do
   slug="${entry%%|*}"
-  url="${entry#*|}"
+  rest="${entry#*|}"
+  url="${rest%%|*}"
+  filename="source.pdf"
+  if [[ "$rest" == *"|"* ]]; then
+    filename="${rest#*|}"
+  fi
 
   if [[ "$FILTER" != "all" && "$FILTER" != "$slug" ]]; then
     continue
   fi
   matched=$((matched + 1))
 
-  dest="$SCRIPT_DIR/$slug/source.pdf"
+  dest="$SCRIPT_DIR/$slug/$filename"
   mkdir -p "$(dirname "$dest")"
 
   if [[ -f "$dest" ]]; then

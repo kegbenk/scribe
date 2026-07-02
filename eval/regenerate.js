@@ -54,7 +54,12 @@ function loadSources() {
 
 function resolvePdfPath(slug, value) {
   if (!value) return null;
-  if (value === 'default') return join(ROOT, 'corpus', slug, 'source.pdf');
+  if (value === 'default') {
+    // A book's default source may be a PDF or an EPUB.
+    const pdf = join(ROOT, 'corpus', slug, 'source.pdf');
+    const epub = join(ROOT, 'corpus', slug, 'source.epub');
+    return existsSync(pdf) ? pdf : epub;
+  }
   let p = value;
   if (p.startsWith('~/')) p = join(homedir(), p.slice(2));
   if (!isAbsolute(p)) p = resolve(ROOT, p);

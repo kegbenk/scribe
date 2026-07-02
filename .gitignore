@@ -25,6 +25,7 @@ corpus/*/ai-annotations/
 # Source PDFs are not tracked. Point corpus/sources.json (also gitignored)
 # at local or external-drive paths — see corpus/sources.example.json.
 corpus/*/source.pdf
+corpus/*/source.epub
 corpus/sources.json
 
 # OS

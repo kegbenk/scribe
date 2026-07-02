@@ -110,7 +110,9 @@ final class EPUBProcessor {
                     "images": images,
                     // EPUBs have no physical pages; startPage is the 1-based spine ordinal.
                     "startPage": spineOrdinal,
-                    "footnotes": [[String: Any]]()
+                    "footnotes": segment.footnotes.enumerated().map { i, note in
+                        ["number": note.number ?? (i + 1), "text": note.text] as [String: Any]
+                    }
                 ]
                 if isBackMatterTitle(title) {
                     chapterDict["isBackMatter"] = true
@@ -135,6 +137,7 @@ final class EPUBProcessor {
         let level: Int
         let paragraphs: ArraySlice<String>
         let imageRefs: [XHTMLTextParser.ImageRef]
+        let footnotes: [XHTMLTextParser.FootnoteRef]
     }
 
     /// Split a parsed document at the anchors its toc entries point to.
@@ -148,7 +151,8 @@ final class EPUBProcessor {
                 title: tocEntries.first?.title,
                 level: tocEntries.first?.level ?? 0,
                 paragraphs: parsed.paragraphs[...],
-                imageRefs: parsed.imageRefs
+                imageRefs: parsed.imageRefs,
+                footnotes: parsed.footnotes
             )]
         }
 
@@ -173,7 +177,8 @@ final class EPUBProcessor {
                 title: tocEntries.first?.title,
                 level: tocEntries.first?.level ?? 0,
                 paragraphs: parsed.paragraphs[...],
-                imageRefs: parsed.imageRefs
+                imageRefs: parsed.imageRefs,
+                footnotes: parsed.footnotes
             )]
         }
 
@@ -198,10 +203,14 @@ final class EPUBProcessor {
                         paragraphIndex: ref.paragraphIndex - start
                     )
                 }
+            let notes = parsed.footnotes.filter {
+                $0.paragraphIndex >= start && ($0.paragraphIndex < end || (isLast && $0.paragraphIndex == end))
+            }
             segments.append(Segment(
                 title: cut.title, level: cut.level,
                 paragraphs: parsed.paragraphs[start..<end],
-                imageRefs: refs
+                imageRefs: refs,
+                footnotes: notes
             ))
         }
         return segments
@@ -543,10 +552,19 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
         let paragraphIndex: Int
     }
 
+    struct FootnoteRef {
+        /// Parsed leading number, if the note text started with one.
+        let number: Int?
+        let text: String
+        /// Paragraph boundary the note sat at (index into Result.paragraphs).
+        let paragraphIndex: Int
+    }
+
     struct Result {
         let text: String
         let paragraphs: [String]
         let imageRefs: [ImageRef]
+        let footnotes: [FootnoteRef]
         let firstHeading: String?
         /// Element id/name → paragraph boundary index, for splitting a single
         /// document into chapters at toc fragment anchors.
@@ -565,6 +583,10 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
     private var current = ""
     private var skipDepth = 0
     private var imageRefs: [ImageRef] = []
+    private var footnotes: [FootnoteRef] = []
+    private var footnoteElementDepth = 0
+    private var footnoteBuffer = ""
+    private var footnoteParagraphIndex = 0
     private var firstHeading: String?
     private var headingCapture: String?
     private var wordCount = 0
@@ -582,9 +604,40 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
             text: delegate.paragraphs.joined(separator: "\n\n"),
             paragraphs: delegate.paragraphs,
             imageRefs: delegate.imageRefs,
+            footnotes: delegate.footnotes,
             firstHeading: delegate.firstHeading,
             anchors: delegate.anchors
         )
+    }
+
+    /// EPUB3 semantic footnote/endnote containers: `epub:type` vocabulary
+    /// or ARIA DPUB roles.
+    private static func isFootnoteContainer(_ attributes: [String: String]) -> Bool {
+        let epubType = attributes["epub:type"] ?? ""
+        let role = attributes["role"] ?? ""
+        let types = Set(epubType.split(separator: " ").map(String.init))
+        let roles = Set(role.split(separator: " ").map(String.init))
+        return types.contains("footnote") || types.contains("endnote")
+            || types.contains("rearnote")
+            || roles.contains("doc-footnote") || roles.contains("doc-endnote")
+    }
+
+    private func finalizeFootnote() {
+        let text = footnoteBuffer
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        footnoteBuffer = ""
+        guard !text.isEmpty else { return }
+
+        // "12. Note text" / "12 Note text" / "12) Note text" → number + body
+        var number: Int?
+        var body = text
+        if let match = text.range(of: #"^\d{1,4}[.):\]]?\s+"#, options: .regularExpression) {
+            number = Int(text[match].trimmingCharacters(in: CharacterSet.decimalDigits.inverted))
+            body = String(text[match.upperBound...])
+        }
+        footnotes.append(FootnoteRef(number: number, text: body, paragraphIndex: footnoteParagraphIndex))
     }
 
     /// XMLParser resolves only the five XML entities. XHTML in the wild uses
@@ -630,6 +683,16 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
         }
         guard skipDepth == 0 else { return }
 
+        // Inside a footnote container: text accumulates in the note buffer;
+        // nested blocks just add separation, never body paragraphs.
+        if footnoteElementDepth > 0 {
+            footnoteElementDepth += 1
+            if XHTMLTextParser.blockElements.contains(name) {
+                footnoteBuffer += " "
+            }
+            return
+        }
+
         // Flush before recording anchors/images so paragraph boundaries and
         // word offsets refer to completed paragraphs.
         if name == "img" || name == "image" || XHTMLTextParser.blockElements.contains(name) {
@@ -642,6 +705,13 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
         }
         if name == "a", let anchorName = attributes["name"], anchors[anchorName] == nil {
             anchors[anchorName] = paragraphs.count
+        }
+
+        if XHTMLTextParser.isFootnoteContainer(attributes) {
+            footnoteElementDepth = 1
+            footnoteBuffer = ""
+            footnoteParagraphIndex = paragraphs.count
+            return
         }
 
         if name == "img", let src = attributes["src"] {
@@ -660,6 +730,10 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {
         guard skipDepth == 0 else { return }
+        if footnoteElementDepth > 0 {
+            footnoteBuffer += string
+            return
+        }
         current += string
         if headingCapture != nil { headingCapture! += string }
     }
@@ -672,6 +746,13 @@ final class XHTMLTextParser: NSObject, XMLParserDelegate {
             return
         }
         guard skipDepth == 0 else { return }
+        if footnoteElementDepth > 0 {
+            footnoteElementDepth -= 1
+            if footnoteElementDepth == 0 {
+                finalizeFootnote()
+            }
+            return
+        }
         if XHTMLTextParser.blockElements.contains(name) {
             flushParagraph()
         }

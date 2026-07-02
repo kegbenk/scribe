@@ -43,12 +43,16 @@ detection are open problems, tracked in the baselines' justification notes.
 EPUB skips OCR and page-layout analysis entirely, so it is roughly an order
 of magnitude faster than PDF:
 
-| Book | Kind | Words | Chapters | Latency |
-|---|---|---|---|---|
-| Heaven and Hell (Swedenborg, NCE) | EPUB2, NCX toc, nested levels | 248k | 93 | **0.45 s** |
+| Book | Kind | Words | Chapters | Latency | Fidelity* |
+|---|---|---|---|---|---|
+| pride-prejudice (Gutenberg #1342) | EPUB2, fragment-anchor toc | 132k | 64 | **0.24 s** | 96.1% |
+| Heaven and Hell (Swedenborg, NCE) | EPUB2, NCX toc, nested levels | 248k | 93 | **0.45 s** | — |
 
-The EPUB path has unit-test coverage (nav/NCX parsing, fragment segmentation,
-entity handling) but no fidelity corpus book yet — tracked in BACKLOG.
+pride-prejudice is part of the locked regression corpus; its ground truth is
+derived from the book's own declared NCX/spine structure
+(`corpus/pride-prejudice/annotate.py`). Its `chapter_titles` dimension
+(~0.70) honestly reflects a known gap: fragment segmentation cuts at
+spine-file boundaries rather than across them (tracked in BACKLOG).
 
 ## Context: server-side extraction tools
 

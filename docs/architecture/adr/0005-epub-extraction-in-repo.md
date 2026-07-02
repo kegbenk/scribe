@@ -32,5 +32,6 @@ Notable behaviors:
 
 - Both consumers gain EPUB import with no integration work.
 - The zip reader is deliberately minimal. Encrypted EPUBs (DRM) and zip64 archives are rejected (extraction returns nil). This is correct behavior for DRM and an acceptable gap for >4GB archives.
-- Footnote separation (`epub:type="footnote"`) and an EPUB book in the eval corpus are deferred — tracked in BACKLOG. The fidelity scorer currently only exercises the PDF path.
+- Footnote separation ships with the initial implementation: `epub:type="footnote"/"endnote"/"rearnote"` and `role="doc-footnote"/"doc-endnote"` containers are lifted out of body text into the `footnotes` array (leading numbers parsed; unnumbered notes numbered sequentially per chapter). Inline noteref markers stay in the body, matching the PDF path.
+- The eval corpus includes an EPUB book (`corpus/pride-prejudice`, Gutenberg #1342). Its ground truth is *derived from the book's own declared NCX/spine structure* by `corpus/pride-prejudice/annotate.py` (Python stdlib, independent of the Swift path) and encodes the ideal cross-file chapter boundaries — the Swift implementation's file-boundary segmentation gap is visible in its `chapter_titles` score (~0.70) rather than annotated away.
 - The XHTML text extractor is SAX-based and structural (block elements → paragraphs); it does not evaluate CSS. Books that hide content via stylesheets will include that content.
