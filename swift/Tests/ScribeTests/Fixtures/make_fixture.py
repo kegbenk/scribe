@@ -25,12 +25,14 @@ opf = '''<?xml version="1.0" encoding="UTF-8"?>
     <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch3" href="ch3.xhtml" media-type="application/xhtml+xml"/>
     <item id="fig1" href="images/fig1.png" media-type="image/png"/>
   </manifest>
   <spine toc="ncx">
     <itemref idref="cover"/>
     <itemref idref="ch1"/>
     <itemref idref="ch2"/>
+    <itemref idref="ch3"/>
   </spine>
 </package>'''
 
@@ -45,6 +47,7 @@ nav = '''<?xml version="1.0" encoding="UTF-8"?>
   <li><a href="ch2.xhtml">Chapter Two</a>
     <ol><li><a href="ch2.xhtml#sec2">A Nested Section</a></li></ol>
   </li>
+  <li><a href="ch3.xhtml#c3">Chapter Three</a></li>
 </ol>
 </nav>
 </body>
@@ -59,13 +62,15 @@ ncx = '''<?xml version="1.0" encoding="UTF-8"?>
   <navPoint id="n2" playOrder="2"><navLabel><text>Chapter Two</text></navLabel><content src="ch2.xhtml"/>
     <navPoint id="n3" playOrder="3"><navLabel><text>A Nested Section</text></navLabel><content src="ch2.xhtml#sec2"/></navPoint>
   </navPoint>
+  <navPoint id="n4" playOrder="4"><navLabel><text>Chapter Three</text></navLabel><content src="ch3.xhtml#c3"/></navPoint>
 </navMap>
 </ncx>'''
 
 cover = '''<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>Cover</title></head>
-<body><div><img src="images/fig1.png" alt="Cover art"/></div></body>
+<body><div><img src="images/fig1.png" alt="Cover art"/>
+<p>The Scribe Test Book. A fixture for cross-file chapter boundaries.</p></div></body>
 </html>'''
 
 ch1 = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -95,6 +100,21 @@ ch2 = '''<?xml version="1.0" encoding="UTF-8"?>
 </body>
 </html>'''
 
+# ch3 opens with the tail of "A Nested Section" flowing across the spine-file
+# split (no anchor of its own), then its OWN chapter begins mid-file at #c3.
+# The old per-file segmenter forced ch3's first toc entry to paragraph 0, so the
+# continuation leaked into Chapter Three; the global stream keeps it with the
+# nested section it belongs to.
+ch3 = '''<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Chapter Three</title></head>
+<body>
+<p>The nested section continued here, flowing past the file split without a heading of its own.</p>
+<h1 id="c3">Chapter Three</h1>
+<p>Chapter three body begins after its own anchor, on a fresh spine document.</p>
+</body>
+</html>'''
+
 here = os.path.dirname(os.path.abspath(__file__))
 path = os.path.join(here, 'sample.epub')
 with zipfile.ZipFile(path, 'w') as z:
@@ -107,6 +127,7 @@ with zipfile.ZipFile(path, 'w') as z:
         ('OEBPS/cover.xhtml', cover),
         ('OEBPS/ch1.xhtml', ch1),
         ('OEBPS/ch2.xhtml', ch2),
+        ('OEBPS/ch3.xhtml', ch3),
     ]:
         z.writestr(name, content, compress_type=zipfile.ZIP_DEFLATED)
     z.writestr('OEBPS/images/fig1.png', png, compress_type=zipfile.ZIP_STORED)

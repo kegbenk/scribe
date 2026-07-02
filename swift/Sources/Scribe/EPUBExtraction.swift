@@ -54,18 +54,21 @@ final class EPUBProcessor {
             }
         }
 
-        // Group toc entries by document path (fragment stripped), in toc order.
-        // Toc hrefs are relative to the toc document; both nav and ncx live next
-        // to the OPF in the vast majority of books, so resolve against opfDir.
-        var tocListByPath: [String: [TocEntry]] = [:]
-        for entry in tocEntries {
-            let path = resolvePath(stripFragment(entry.href), relativeTo: opfDir)
-            tocListByPath[path, default: []].append(entry)
-        }
-
-        let scribe = ScribeProcessor()
-        var chapters: [[String: Any]] = []
-        var fullTextParts: [String] = []
+        // ---- Pass 1: build ONE global paragraph stream across all spine
+        // documents. A chapter routinely begins in one spine file and runs into
+        // the next; segmenting per-file (as we used to) forced every file's
+        // first toc entry to paragraph 0, so a chapter's cross-file tail leaked
+        // into the next file's first chapter. A single global stream lets us cut
+        // chapters at the real toc-anchor boundaries wherever they fall.
+        var globalParagraphs: [String] = []
+        var globalImages: [PositionedImage] = []          // global word/paragraph offsets + owning dir
+        var globalFootnotes: [XHTMLTextParser.FootnoteRef] = []  // paragraphIndex is global
+        var anchorGlobal: [String: Int] = [:]             // "docPath#fragment" -> global paragraph boundary
+        var fileBase: [String: Int] = [:]                 // docPath -> global paragraph index where the file begins
+        var fileOrdinal: [String: Int] = [:]              // docPath -> 1-based spine ordinal
+        var docFirstHeading: [String: String] = [:]       // docPath -> firstHeading (no-toc fallback titles)
+        var orderedDocPaths: [String] = []                // spine order, HTML docs only
+        var wordTotal = 0                                 // running word count across prior docs (image offsets)
         var spineOrdinal = 0
 
         NSLog("[EPUBProcessor] %@: %d spine items, %d toc entries",
@@ -78,142 +81,166 @@ final class EPUBProcessor {
             spineOrdinal += 1
 
             let parsed = XHTMLTextParser.parse(docData)
-            let docEntries = tocListByPath[docPath] ?? []
-            let segments = buildSegments(parsed: parsed, tocEntries: docEntries)
+            let base = globalParagraphs.count
+            let docDir = parentDirectory(of: docPath)
+            fileBase[docPath] = base
+            fileOrdinal[docPath] = spineOrdinal
+            if let h = parsed.firstHeading { docFirstHeading[docPath] = h }
+            orderedDocPaths.append(docPath)
 
-            for segment in segments {
-                let text = segment.paragraphs.joined(separator: "\n\n")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-
-                let images = buildImages(
-                    refs: segment.imageRefs,
-                    documentDir: parentDirectory(of: docPath),
-                    chapterText: text,
-                    zip: zip
-                )
-
-                // Cover pages and spacer documents contribute nothing — skip them.
-                if text.isEmpty && images.isEmpty { continue }
-
-                let title = segment.title ?? parsed.firstHeading ?? "Chapter \(chapters.count + 1)"
-                let tokenData = scribe.buildChapterTokenData(text: text)
-
-                var chapterDict: [String: Any] = [
-                    "id": "epub-chapter-\(chapters.count)",
-                    "title": title,
-                    "level": segment.level,
-                    "sourceType": "epub",
-                    "htmlContent": scribe.textToHtml(text, images: images),
-                    "plainText": text,
-                    "tokens": tokenData.tokens,
-                    "paragraphStarts": tokenData.paragraphStarts,
-                    "images": images,
-                    // EPUBs have no physical pages; startPage is the 1-based spine ordinal.
-                    "startPage": spineOrdinal,
-                    "footnotes": segment.footnotes.enumerated().map { i, note in
-                        ["number": note.number ?? (i + 1), "text": note.text] as [String: Any]
-                    }
-                ]
-                if isBackMatterTitle(title) {
-                    chapterDict["isBackMatter"] = true
-                }
-                chapters.append(chapterDict)
-                fullTextParts.append(text)
+            for (fragment, idx) in parsed.anchors {
+                anchorGlobal["\(docPath)#\(fragment)"] = base + idx
             }
+            // Trailing images/footnotes (an endnote <aside> after a file's last
+            // paragraph) parse with paragraphIndex == the file's paragraph count,
+            // which is exactly the NEXT spine file's base. Clamp to this file's
+            // last paragraph so such trailing content stays with its own chapter
+            // instead of leaking into the next file's first chapter.
+            let lastParaIdx = max(0, parsed.paragraphs.count - 1)
+            for ref in parsed.imageRefs {
+                globalImages.append(PositionedImage(
+                    src: ref.src, alt: ref.alt,
+                    wordOffset: wordTotal + ref.wordOffset,
+                    paragraphIndex: base + min(ref.paragraphIndex, lastParaIdx),
+                    documentDir: docDir
+                ))
+            }
+            for note in parsed.footnotes {
+                globalFootnotes.append(XHTMLTextParser.FootnoteRef(
+                    number: note.number, text: note.text,
+                    paragraphIndex: base + min(note.paragraphIndex, lastParaIdx)
+                ))
+            }
+            globalParagraphs.append(contentsOf: parsed.paragraphs)
+            wordTotal += parsed.paragraphs.reduce(0) { $0 + ScribeTokenizer.parseText($1).count }
+        }
+
+        guard !globalParagraphs.isEmpty || !globalImages.isEmpty else { return nil }
+
+        // Prefix-sum of per-paragraph word counts, to rebase image word offsets
+        // from global back into per-chapter offsets.
+        let paragraphWordCounts = globalParagraphs.map { ScribeTokenizer.parseText($0).count }
+        var cumulativeWords: [Int] = [0]
+        cumulativeWords.reserveCapacity(paragraphWordCounts.count + 1)
+        for c in paragraphWordCounts { cumulativeWords.append(cumulativeWords.last! + c) }
+
+        // ---- Pass 2: resolve each toc entry to a global paragraph boundary, in
+        // toc order. A chapter runs from its anchor to the next anchor, spanning
+        // however many spine files lie between them.
+        struct Cut { let title: String; let level: Int; let boundary: Int; let ordinal: Int }
+        var cuts: [Cut] = []
+        for entry in tocEntries {
+            let docPath = resolvePath(stripFragment(entry.href), relativeTo: opfDir)
+            guard let base = fileBase[docPath] else { continue }   // toc points outside the spine
+            let boundary: Int
+            if let fragment = fragmentOf(entry.href) {
+                guard let g = anchorGlobal["\(docPath)#\(fragment)"] else { continue }  // missing anchor → skip
+                boundary = g
+            } else {
+                boundary = base
+            }
+            if let last = cuts.last, boundary < last.boundary { continue }  // out-of-order anchor
+            cuts.append(Cut(title: entry.title, level: entry.level,
+                            boundary: boundary, ordinal: fileOrdinal[docPath] ?? spineOrdinal))
+        }
+
+        let hasStructure = !cuts.isEmpty
+
+        // No usable navigation: fall back to one chapter per spine document
+        // (previous behavior for books with no toc / all-missing anchors).
+        if cuts.isEmpty {
+            for docPath in orderedDocPaths {
+                cuts.append(Cut(
+                    title: docFirstHeading[docPath] ?? "Chapter \(cuts.count + 1)",
+                    level: 0, boundary: fileBase[docPath]!, ordinal: fileOrdinal[docPath]!))
+            }
+        }
+        guard !cuts.isEmpty else { return nil }
+
+        let scribe = ScribeProcessor()
+        var chapters: [[String: Any]] = []
+        var fullTextParts: [String] = []
+
+        // Emit one chapter for a global paragraph range [start, end).
+        func emitChapter(title rawTitle: String, level: Int, start: Int, end: Int, ordinal: Int) {
+            guard start <= end, end <= globalParagraphs.count else { return }
+            let text = globalParagraphs[start..<end].joined(separator: "\n\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let atStreamEnd = end == globalParagraphs.count
+
+            let refs = globalImages
+                .filter { $0.paragraphIndex >= start && ($0.paragraphIndex < end || (atStreamEnd && $0.paragraphIndex == end)) }
+                .map { ref in
+                    PositionedImage(
+                        src: ref.src, alt: ref.alt,
+                        wordOffset: max(0, ref.wordOffset - cumulativeWords[start]),
+                        paragraphIndex: ref.paragraphIndex - start,
+                        documentDir: ref.documentDir
+                    )
+                }
+            let images = buildImages(refs: refs, chapterText: text, zip: zip)
+
+            // A range that yields neither text nor images is a spacer — drop it.
+            if text.isEmpty && images.isEmpty { return }
+
+            let notes = globalFootnotes.filter {
+                $0.paragraphIndex >= start && ($0.paragraphIndex < end || (atStreamEnd && $0.paragraphIndex == end))
+            }
+            let title = rawTitle.isEmpty ? "Chapter \(chapters.count + 1)" : rawTitle
+            let tokenData = scribe.buildChapterTokenData(text: text)
+
+            var chapterDict: [String: Any] = [
+                "id": "epub-chapter-\(chapters.count)",
+                "title": title,
+                "level": level,
+                "sourceType": "epub",
+                "htmlContent": scribe.textToHtml(text, images: images),
+                "plainText": text,
+                "tokens": tokenData.tokens,
+                "paragraphStarts": tokenData.paragraphStarts,
+                "images": images,
+                // EPUBs have no physical pages; startPage is the 1-based spine
+                // ordinal of the file the chapter's anchor lives in.
+                "startPage": ordinal,
+                "footnotes": notes.enumerated().map { i, note in
+                    ["number": note.number ?? (i + 1), "text": note.text] as [String: Any]
+                }
+            ]
+            if isBackMatterTitle(title) {
+                chapterDict["isBackMatter"] = true
+            }
+            chapters.append(chapterDict)
+            fullTextParts.append(text)
+        }
+
+        // Front matter: everything before the first toc anchor (cover, title
+        // page, Gutenberg boilerplate) is its own chapter, matching the book's
+        // declared structure rather than being swept into chapter one.
+        if cuts[0].boundary > 0 {
+            emitChapter(title: "Front Matter", level: 0, start: 0, end: cuts[0].boundary, ordinal: 1)
+        }
+        for (i, cut) in cuts.enumerated() {
+            let end = (i + 1 < cuts.count) ? cuts[i + 1].boundary : globalParagraphs.count
+            emitChapter(title: cut.title, level: cut.level, start: cut.boundary, end: end, ordinal: cut.ordinal)
         }
 
         guard !chapters.isEmpty else { return nil }
         chapters = scribe.calculateWordBoundaries(chapters: chapters)
-        let hasStructure = !tocEntries.isEmpty
         return (text: fullTextParts.joined(separator: "\n"), chapters: chapters, hasStructure: hasStructure)
     }
 
-    // MARK: - Fragment segmentation
+    // MARK: - Positioned image
 
-    /// One chapter's worth of a spine document: either the whole document
-    /// (zero or one toc entry) or a slice between toc fragment anchors.
-    struct Segment {
-        let title: String?
-        let level: Int
-        let paragraphs: ArraySlice<String>
-        let imageRefs: [XHTMLTextParser.ImageRef]
-        let footnotes: [XHTMLTextParser.FootnoteRef]
-    }
-
-    /// Split a parsed document at the anchors its toc entries point to.
-    /// Classic single-file EPUBs put every chapter in one XHTML document with
-    /// fragment hrefs ("book.html#ch3") — without this they collapse into one
-    /// giant chapter.
-    static func buildSegments(parsed: XHTMLTextParser.Result, tocEntries: [TocEntry]) -> [Segment] {
-        // Whole-document chapter: no fragments to split on.
-        guard tocEntries.count > 1 else {
-            return [Segment(
-                title: tocEntries.first?.title,
-                level: tocEntries.first?.level ?? 0,
-                paragraphs: parsed.paragraphs[...],
-                imageRefs: parsed.imageRefs,
-                footnotes: parsed.footnotes
-            )]
-        }
-
-        // Resolve each entry's fragment to a paragraph boundary. Entries whose
-        // anchor is missing merge into the preceding segment.
-        var cuts: [(title: String, level: Int, boundary: Int)] = []
-        for (i, entry) in tocEntries.enumerated() {
-            let fragment = fragmentOf(entry.href)
-            let boundary: Int?
-            if let fragment = fragment {
-                boundary = parsed.anchors[fragment]
-            } else {
-                boundary = 0
-            }
-            guard var b = boundary else { continue }
-            if i == 0 { b = 0 }  // preamble before the first anchor joins chapter one
-            if let last = cuts.last, b < last.boundary { continue }  // out-of-order anchor
-            cuts.append((entry.title, entry.level, b))
-        }
-        guard cuts.count > 1 else {
-            return [Segment(
-                title: tocEntries.first?.title,
-                level: tocEntries.first?.level ?? 0,
-                paragraphs: parsed.paragraphs[...],
-                imageRefs: parsed.imageRefs,
-                footnotes: parsed.footnotes
-            )]
-        }
-
-        // Per-paragraph token counts, to rebase image word offsets per segment.
-        let paragraphWordCounts = parsed.paragraphs.map { ScribeTokenizer.parseText($0).count }
-        var cumulative: [Int] = [0]
-        for count in paragraphWordCounts { cumulative.append(cumulative.last! + count) }
-
-        var segments: [Segment] = []
-        for (i, cut) in cuts.enumerated() {
-            let start = cut.boundary
-            let end = (i + 1 < cuts.count) ? cuts[i + 1].boundary : parsed.paragraphs.count
-            guard start <= end, end <= parsed.paragraphs.count else { continue }
-
-            let isLast = i == cuts.count - 1
-            let refs = parsed.imageRefs
-                .filter { $0.paragraphIndex >= start && ($0.paragraphIndex < end || (isLast && $0.paragraphIndex == end)) }
-                .map { ref in
-                    XHTMLTextParser.ImageRef(
-                        src: ref.src, alt: ref.alt,
-                        wordOffset: max(0, ref.wordOffset - cumulative[start]),
-                        paragraphIndex: ref.paragraphIndex - start
-                    )
-                }
-            let notes = parsed.footnotes.filter {
-                $0.paragraphIndex >= start && ($0.paragraphIndex < end || (isLast && $0.paragraphIndex == end))
-            }
-            segments.append(Segment(
-                title: cut.title, level: cut.level,
-                paragraphs: parsed.paragraphs[start..<end],
-                imageRefs: refs,
-                footnotes: notes
-            ))
-        }
-        return segments
+    /// An image reference carried through the global paragraph stream: word and
+    /// paragraph offsets are global in pass 1, then rebased per-chapter before
+    /// the archive bytes are loaded. `documentDir` is the spine file's directory
+    /// so cross-file chapters resolve each image against its own file.
+    struct PositionedImage {
+        let src: String
+        let alt: String?
+        let wordOffset: Int
+        let paragraphIndex: Int
+        let documentDir: String
     }
 
     private static func fragmentOf(_ href: String) -> String? {
@@ -231,10 +258,10 @@ final class EPUBProcessor {
 
     /// Load referenced images from the archive as data URIs. Unlike the PDF
     /// path's proportional estimate, EPUB gives the exact word offset of each
-    /// <img> in the text stream.
+    /// <img> in the text stream. Each ref carries its own `documentDir` so a
+    /// cross-file chapter resolves images against the spine file they came from.
     private static func buildImages(
-        refs: [XHTMLTextParser.ImageRef],
-        documentDir: String,
+        refs: [PositionedImage],
         chapterText: String,
         zip: ZipReader
     ) -> [[String: Any]] {
@@ -245,7 +272,7 @@ final class EPUBProcessor {
         for ref in refs {
             let ext = (ref.src as NSString).pathExtension.lowercased()
             guard let mime = imageMimeTypes[ext] else { continue }
-            let path = resolvePath(stripFragment(ref.src), relativeTo: documentDir)
+            let path = resolvePath(stripFragment(ref.src), relativeTo: ref.documentDir)
             guard let data = zip.contents(of: path) else { continue }
             // Same payload cap as the PDF pipeline.
             guard data.count < 500_000 else { continue }

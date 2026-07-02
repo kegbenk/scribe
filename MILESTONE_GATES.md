@@ -28,7 +28,7 @@ Reach stable-for-external-consumers (1.0) and announce.
 
 ## Not Yet A Release Gate
 
-- EPUB cross-file chapter boundaries (quality gap, tracked in BACKLOG) — a fidelity improvement, not a contract stabilizer.
+- ~~EPUB cross-file chapter boundaries (quality gap, tracked in BACKLOG)~~ — done 2026-07-02: global paragraph stream + toc-anchor cuts; pride-prejudice overall 96.1% → 100.0%. Contract shape unchanged.
 - Peak-memory reduction for large scans (1.7 GB RSS worst case, see `docs/benchmarks.md`) — matters for iOS positioning; gate it on the first consumer shipping large-scan import on iPhone.
 
 ## Immediate Next Decision

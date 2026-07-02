@@ -18,17 +18,20 @@ final class EPUBExtractionTests: XCTestCase {
     func testExtractsChaptersWithStructure() throws {
         let result = try XCTUnwrap(ScribeProcessor.processForTest(url: fixtureURL))
         XCTAssertTrue(result.hasStructure)
-        // cover (image-only) + ch1 + ch2 split at its #sec2 fragment anchor;
-        // the nav doc is not in the spine
-        XCTAssertEqual(result.chapters.count, 4)
+        // Front Matter (cover title page, before the first toc anchor) + ch1 +
+        // ch2 split at its #sec2 fragment anchor + ch3 (Chapter Three anchors
+        // mid-file at #c3). The nav doc is not in the spine.
+        XCTAssertEqual(result.chapters.count, 5)
 
         let titles = result.chapters.map { $0["title"] as? String }
+        XCTAssertEqual(titles[0], "Front Matter")
         XCTAssertEqual(titles[1], "Chapter One")
         XCTAssertEqual(titles[2], "Chapter Two")
         XCTAssertEqual(titles[3], "A Nested Section")
+        XCTAssertEqual(titles[4], "Chapter Three")
 
         let levels = result.chapters.map { $0["level"] as? Int }
-        XCTAssertEqual(levels, [0, 0, 0, 1])
+        XCTAssertEqual(levels, [0, 0, 0, 1, 0])
 
         for chapter in result.chapters {
             XCTAssertEqual(chapter["sourceType"] as? String, "epub")
@@ -38,6 +41,31 @@ final class EPUBExtractionTests: XCTestCase {
         XCTAssertTrue(sectionText.contains("Sections nest"))
         let ch2Text = try XCTUnwrap(result.chapters[2]["plainText"] as? String)
         XCTAssertFalse(ch2Text.contains("Sections nest"), "fragment content must not remain in the parent chapter")
+    }
+
+    /// The regression this whole rewrite targets: a chapter whose text spills
+    /// across a spine-file boundary must stay with the chapter it belongs to,
+    /// not leak into the next file's first chapter. "A Nested Section" begins in
+    /// ch2 and continues into ch3 (before ch3's own #c3 anchor); "Chapter Three"
+    /// must contain only what follows #c3.
+    func testCrossFileChapterBoundaries() throws {
+        let result = try XCTUnwrap(ScribeProcessor.processForTest(url: fixtureURL))
+
+        let sectionText = try XCTUnwrap(result.chapters[3]["plainText"] as? String)
+        XCTAssertTrue(sectionText.contains("Sections nest"), "nested section keeps its own opening text")
+        XCTAssertTrue(sectionText.contains("flowing past the file split"),
+                      "cross-file continuation must stay with the section it belongs to")
+
+        let ch3Text = try XCTUnwrap(result.chapters[4]["plainText"] as? String)
+        XCTAssertTrue(ch3Text.contains("Chapter three body begins"))
+        XCTAssertFalse(ch3Text.contains("flowing past the file split"),
+                       "the previous chapter's tail must not leak into Chapter Three")
+
+        // startPage is the spine ordinal of the file the chapter's ANCHOR lives
+        // in: the nested section anchors in ch2 (ordinal 3) even though its text
+        // runs into ch3; Chapter Three anchors in ch3 (ordinal 4).
+        XCTAssertEqual(result.chapters[3]["startPage"] as? Int, 3)
+        XCTAssertEqual(result.chapters[4]["startPage"] as? Int, 4)
     }
 
     func testTextAndEntityHandling() throws {
@@ -65,7 +93,7 @@ final class EPUBExtractionTests: XCTestCase {
         let result = try XCTUnwrap(ScribeProcessor.processForTest(url: fixtureURL))
 
         let coverImages = try XCTUnwrap(result.chapters[0]["images"] as? [[String: Any]])
-        XCTAssertEqual(coverImages.count, 1, "image-only cover page should be kept for its image")
+        XCTAssertEqual(coverImages.count, 1, "cover art on the front-matter page should be kept")
 
         let ch1Images = try XCTUnwrap(result.chapters[1]["images"] as? [[String: Any]])
         XCTAssertEqual(ch1Images.count, 1)

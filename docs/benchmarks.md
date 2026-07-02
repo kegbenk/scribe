@@ -51,14 +51,21 @@ of magnitude faster than PDF:
 
 | Book | Kind | Words | Chapters | Latency | Fidelity* |
 |---|---|---|---|---|---|
-| pride-prejudice (Gutenberg #1342) | EPUB2, fragment-anchor toc | 132k | 64 | **0.24 s** | 96.1% |
-| Heaven and Hell (Swedenborg, NCE) | EPUB2, NCX toc, nested levels | 248k | 93 | **0.45 s** | — |
+| pride-prejudice (Gutenberg #1342) | EPUB2, fragment-anchor toc | 132k | 64 | **0.24 s** | 100.0% |
+| Heaven and Hell (Swedenborg, NCE) | EPUB2, NCX toc, nested levels | 248k | 90 | **0.45 s** | — |
 
 pride-prejudice is part of the locked regression corpus; its ground truth is
 derived from the book's own declared NCX/spine structure
-(`corpus/pride-prejudice/annotate.py`). Its `chapter_titles` dimension
-(~0.70) honestly reflects a known gap: fragment segmentation cuts at
-spine-file boundaries rather than across them (tracked in BACKLOG).
+(`corpus/pride-prejudice/annotate.py`). Chapter segmentation builds a single
+global paragraph stream across all spine documents and cuts at global
+toc-anchor boundaries, so a chapter that spans a spine-file split keeps its
+cross-file tail instead of leaking it into the next file's first chapter; the
+pre-first-anchor front matter surfaces as its own chapter. This closed the
+former `chapter_titles` gap (~0.70 → 1.00, overall 96.1% → 100.0%): e.g.
+"Chapter I." now carries its full ~908-word body rather than the ~160-word
+head that survived the file-boundary cut. Swedenborg's 90 chapters are its 89
+declared NCX navPoints plus front matter — the toc-driven count, not the
+one-chapter-per-spine-file over-count the old segmenter produced.
 
 ## Context: server-side extraction tools
 
