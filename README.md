@@ -12,9 +12,9 @@ On-device PDF and EPUB content extraction for iOS and macOS. Produces structured
 | **Footnote separation** | 6 adaptive strategies | Basic | None | None |
 | **Image extraction** | XObject streams + fallback render | ML segmentation | Layout detection | None |
 | **Output format** | contentStructure JSON | Markdown/JSON | Markdown | Markdown |
-| **Processing time** | 1-5s (on-device) | 30-120s (GPU) | 60-300s (GPU) | 60-300s (GPU) |
+| **Processing time** | 0.3–22s on-device ([measured](docs/benchmarks.md)) | 30-120s (GPU) | 60-300s (GPU) | 60-300s (GPU) |
 
-Scribe is purpose-built for the niche no competitor occupies: **fast, private, on-device document extraction** that produces reading-app-ready structured output. PDF and EPUB go through the same pipeline and emit the same contract: one integration, both formats.
+Scribe is purpose-built for the niche no competitor occupies: **fast, private, on-device document extraction** that produces reading-app-ready structured output. PDF and EPUB go through the same pipeline and emit the same contract: one integration, both formats. Latency and fidelity numbers, with reproduction steps, live in [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Quick Start
 
