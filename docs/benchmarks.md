@@ -12,9 +12,9 @@ hand-annotated ground truth), and latency is wall-clock time for
 - **Build:** `swift build -c release`, Scribe 0.3.0 (2026-07-02)
 - **Measurement:** wall-clock for the full CLI invocation (process start →
   JSON written), single run, no warm-up. On-device, no network.
-- **Reproduce:** `swift build -c release --package-path swift`, then time
-  `swift/.build/release/scribe-cli extract <book>` per corpus book
-  (source PDFs via `corpus/download.sh` / `corpus/sources.json`).
+- **Reproduce:** `swift build -c release --package-path swift`, then
+  `node eval/perf.js` (sources via `corpus/download.sh` /
+  `corpus/sources.json`); it reports wall-clock and peak RSS per book.
 
 ## PDF extraction
 
@@ -28,6 +28,12 @@ hand-annotated ground truth), and latency is wall-clock time for
 | 911-commission | government report, heavy footnotes | 2.4 MB | 424k | **17.4 s** | 77.9% |
 | anatomy-melancholy | 1868 scan, dense OCR | 63.8 MB | 466k | **21.5 s** | — |
 | alice-wonderland | scanned, heavily illustrated | 31.6 MB | 27k | **22.2 s** | 61.0% |
+
+Peak memory (RSS, via `node eval/perf.js`) ranges from 64 MB
+(attention-paper) through 733 MB (911-commission) up to **1.7 GB**
+(anatomy-melancholy, a 64 MB scan). The big scanned books are fine on Macs
+but above comfortable iOS budgets — worth knowing before pointing an iPhone
+at a 600-page scan.
 
 \* Fidelity is the weighted overall score against hand-annotated ground truth
 across seven dimensions (chapter boundaries, chapter titles, footnote

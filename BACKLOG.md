@@ -14,21 +14,20 @@ Closes the exit criteria in `MILESTONE_GATES.md`.
 - [x] **Phase A: platform safety pass** — done 2026-05-30. Reverted Package.swift to iOS 15 / macOS 12 + swift-tools 5.9; added `@available(iOS 26.0, macOS 26.0, *)` on DocumentIntelligence, SemanticAnalyzer, StructuralAnalyzer, @Generable types, and Analyze CLI subcommand; gated CLI's `--entities` flag with `if #available`. `TOCEntry` now decodes old JSON (defaults `level=0`).
 - [x] **Consumer-coordination pass for nested-outline contract** ([ADR-0004](docs/architecture/adr/0004-nested-outline-and-level-field.md)) — verified 2026-05-30 at the source level. Both consumers were already designed for `level`-based indented TOCs; the Scribe change is catching up. velo-macos: builds clean and uses `chapter.level` in `VeloReaderView` + `DocumentReaderView` to indent TOC menus. rsvp-reader: `TOCPanel.svelte` renders `class="toc-item level-{item.level}"` with CSS for levels 1–6. Still: runtime smoke-test both apps after tagging (Task #6).
 - [x] **Corpus source-PDF config and regeneration tooling** — done 2026-05-30. `corpus/sources.json` (gitignored) maps book slugs to PDF paths; `corpus/sources.example.json` is the template; `eval/regenerate.js` reads it and runs scribe-cli per book, skipping missing sources with clear warnings. `npm run regenerate` and `--book <slug>` / `--lock` flags supported. attention-paper validated end-to-end through the new flow.
-- [ ] **Locate and configure source PDFs for the remaining 7 books** — `911-commission`, `alice-wonderland`, `anatomy-melancholy`, `healing-dream`, `janus-faces`, `prometheus-atlas`, `self-help-smiles`, `sherlock-holmes`. Find them on disk (external drive per disk-space memory) and add entries to `corpus/sources.json`. Then `node eval/regenerate.js --lock` to refresh predicted.json + baseline.json. Until this is done, the regression gate is partial for 7 of 8 books.
+- [x] **Locate and configure source PDFs for the remaining books** — done 2026-07-02 for all but `janus-faces` (source still unlocated; configure it in `corpus/sources.json` when found). Regression gate runs live on 9 of 10 books.
 - [ ] **Make `predicted.json` output deterministic** — `ScribeCLI.buildContentStructure` emits a `generatedAt` ISO8601 timestamp in `metadata`, so every `regenerate` produces a different file even on identical input. Either drop the timestamp from the predicted output, or move it to a sidecar so the scored artifact stays diffable.
-- [ ] **Re-baseline attention-paper** — `predicted.json` and `baseline.json` updated to current code's output. `native.json` LEFT ALONE pending corpus re-annotation pass.
+- [x] **Re-baseline attention-paper** — done (commit c78d7ac).
 - [ ] **Corpus re-annotation pass** — `native.json` files were hand-annotated against the OLD flat-outline contract. They are now stale ground truth for the new nested-outline contract (per ADR-0004). A deliberate human-authored re-annotation pass is required before the fidelity gate becomes trustworthy again on books with nested outlines. **Do NOT auto-regenerate native.json from current code's output** — that's evaluation theater.
-- [ ] **Land staged commits** — once consumer-coordination is done and corpus is back, commit the work in coherent units: (1) docs + ADRs (additive), (2) Package.swift safety + @available gates, (3) intelligence modules + schema additions, (4) extraction-core changes including ChapterDetection + level field, (5) CLI additions, (6) corpus updates.
+- [x] **Land staged commits** — done; everything through EPUB support is committed and tagged (0.3.0, 2026-07-02).
 - [ ] **Add `ajv` schema validation to `eval/regression.js`** so every `predicted.json` is validated against `shared/content-structure.schema.json` per run. Closes the schema-validity gap from `docs/product/benchmark-definition.md`.
 - [ ] **Decide structural-analysis (Vision RecognizeDocumentsRequest, iOS 26+) status** — is it included in default `DocumentIntelligence.process()` when available, or invoked separately? Possibly an ADR.
 - [ ] **Document `DocumentIntelligence` public API in README.md** — README currently only covers `ScribeProcessor`. velo-macos consumers need a discoverable surface.
-- [ ] **Smoke-test cycle**: build `velo-macos` and `rsvp-reader` against the post-commit Scribe and confirm both work end-to-end.
+- [ ] **Smoke-test cycle**: rsvp-reader built green against 0.3.0 (2026-07-02). velo-macos blocked by its own in-flight WIP (AuthService/SyncService not compiling — unrelated to Scribe, verified); re-run when its tree builds.
 
 ## Next (Phase 1 completion per bootstrap plan)
 
 The plan's Phase 1 ("single-document MVP core"). Most of extraction is done; what's missing is retrieval, citation, and intelligence eval.
 
-- [ ] **Capture latency + peak memory per book** in regression runs (`eval/perf.js`). Wire into the regression report.
 - [ ] **EPUB cross-file chapter boundaries** — fragment segmentation currently cuts at spine-file boundaries, so chapter spillover text lands in the next chapter (visible as pride-prejudice's ~0.70 `chapter_titles` score). Ideal semantics: a chapter runs from its anchor to the next toc anchor across files.
 - [ ] **Define citation-span format** — a typed object identifying `(chapter_index, start_word_index, end_word_index)` and serializable to the schema. Needed before answer-with-evidence is meaningful.
 - [ ] **Add an answer-with-evidence structured output** (schema-validated). Initial implementation can be `DocumentIntelligence.ask(_:context:)` returning `{ answer, citations[], confidence }` — the public `ask` method exists, the structured output doesn't.
@@ -49,7 +48,7 @@ The plan's Phase 1 ("single-document MVP core"). Most of extraction is done; wha
 ## Ops / hygiene
 
 - [ ] **CHANGELOG.md** at 1.0 cut.
-- [ ] **CI for regression run** on PRs touching `swift/Sources/Scribe/` or `shared/`.
+- [x] **CI for regression run** — done 2026-07-02; `.github/workflows/ci.yml` runs build + tests + live attention-paper extraction + full regression on every push/PR.
 - [ ] **CI smoke-test for consumers** (`velo-macos`, `rsvp-reader`).
 - [ ] **Privacy audit script** (`grep` checks per `docs/ops/privacy-principles.md`'s audit checklist) wired into pre-tag.
 - [ ] **Public API diff tool** to flag breaking changes in `swift/Sources/Scribe/` against the last tag.

@@ -8,6 +8,7 @@
     "score": "node score.js",
     "inspect": "node inspect.js",
     "regression": "node regression.js",
-    "regenerate": "node regenerate.js"
+    "regenerate": "node regenerate.js",
+    "perf": "node perf.js"
   }
 }

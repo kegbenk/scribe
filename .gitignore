@@ -36,3 +36,6 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Machine-specific perf output (curated numbers live in docs/benchmarks.md)
+eval/perf-report.json
