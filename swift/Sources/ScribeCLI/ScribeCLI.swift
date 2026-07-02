@@ -146,7 +146,8 @@ struct Extract: ParsableCommand {
                 "version": "scribe-0.3.0",
                 "totalChapters": chapters.count,
                 "totalWords": totalWords,
-                "generatedAt": ISO8601DateFormatter().string(from: Date()),
+                // No timestamp: identical input must produce identical output
+                // so corpus predicted.json stays diffable (BACKLOG determinism item)
             ] as [String: Any],
         ]
     }

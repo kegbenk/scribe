@@ -47190,11 +47190,10 @@
     }
   ],
   "metadata" : {
-    "generatedAt" : "2026-07-02T18:24:20Z",
     "source" : "healing-dream.pdf",
     "totalChapters" : 18,
     "totalWords" : 44806,
-    "version" : "scribe-0.2.0"
+    "version" : "scribe-0.3.0"
   },
   "toc" : [
     {

@@ -5098,11 +5098,10 @@
     }
   ],
   "metadata" : {
-    "generatedAt" : "2026-07-02T18:30:36Z",
     "source" : "source.pdf",
     "totalChapters" : 10,
     "totalWords" : 4822,
-    "version" : "scribe-0.2.0"
+    "version" : "scribe-0.3.0"
   },
   "toc" : [
     {

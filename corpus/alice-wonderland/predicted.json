@@ -28541,11 +28541,10 @@
     }
   ],
   "metadata" : {
-    "generatedAt" : "2026-07-02T18:23:49Z",
     "source" : "source.pdf",
     "totalChapters" : 15,
     "totalWords" : 27290,
-    "version" : "scribe-0.2.0"
+    "version" : "scribe-0.3.0"
   },
   "toc" : [
     {
