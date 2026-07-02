@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test-eval:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
+          swift --version
+
+      - name: Build published manifest (library only)
+        run: swift build
+
+      - name: Build dev manifest (library + CLI)
+        run: swift build --package-path swift
+
+      - name: Run tests
+        run: swift test --package-path swift
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Source PDFs are not tracked. Fetch attention-paper (small, stable arXiv
+      # URL) and re-extract it with the just-built CLI so the scorer below
+      # exercises the live pipeline, not just the committed prediction.
+      - name: Fetch attention-paper source PDF
+        run: |
+          bash corpus/download.sh attention-paper
+          test -f corpus/attention-paper/source.pdf
+
+      - name: Live extraction (attention-paper)
+        run: node eval/regenerate.js --book attention-paper
+
+      # Scores every book's predicted.json (attention-paper's freshly extracted)
+      # against its hand-annotated ground truth and fails if any dimension drops
+      # >2% below the locked baseline.
+      - name: Eval regression vs locked baselines
+        run: node eval/regression.js

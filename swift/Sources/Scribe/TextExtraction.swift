@@ -2,9 +2,6 @@ import Foundation
 import PDFKit
 import CoreGraphics
 import Vision
-#if canImport(UIKit)
-import UIKit
-#endif
 
 extension ScribeProcessor {
 
@@ -554,36 +551,7 @@ extension ScribeProcessor {
     // MARK: - Vision OCR (fallback for scanned pages)
 
     func extractTextWithVision(page: PDFPage) -> String {
-        #if !canImport(UIKit)
-        return "" // Vision OCR requires UIKit (iOS only)
-        #else
-        let pageRect = page.bounds(for: .mediaBox)
-        let scale: CGFloat = 2.0
-        let imageWidth = Int(pageRect.width * scale)
-        let imageHeight = Int(pageRect.height * scale)
-
-        guard imageWidth > 0, imageHeight > 0 else { return "" }
-
-        UIGraphicsBeginImageContextWithOptions(
-            CGSize(width: CGFloat(imageWidth), height: CGFloat(imageHeight)),
-            true, 1.0
-        )
-        guard let context = UIGraphicsGetCurrentContext() else {
-            UIGraphicsEndImageContext()
-            return ""
-        }
-
-        context.setFillColor(UIColor.white.cgColor)
-        context.fill(CGRect(x: 0, y: 0, width: imageWidth, height: imageHeight))
-        context.scaleBy(x: scale, y: scale)
-        context.translateBy(x: 0, y: pageRect.height)
-        context.scaleBy(x: 1.0, y: -1.0)
-        page.draw(with: .mediaBox, to: context)
-
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        guard let cgImage = image?.cgImage else { return "" }
+        guard let cgImage = ScribeGraphics.renderPage(page, scale: 2.0) else { return "" }
 
         let semaphore = DispatchSemaphore(value: 0)
         var recognizedText = ""
@@ -627,7 +595,6 @@ extension ScribeProcessor {
         }
 
         return recognizedText
-        #endif
     }
 
     // MARK: - OCR Cleanup

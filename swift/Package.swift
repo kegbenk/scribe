@@ -1,5 +1,10 @@
 // swift-tools-version: 5.9
 
+// Dev manifest: library + scribe-cli + tests. Used for local development,
+// eval/regenerate.js, and CI. SPM consumers resolve the root Package.swift
+// instead, which exposes the library only (no argument-parser dependency).
+// Keep target definitions in sync between the two manifests.
+
 import PackageDescription
 
 let package = Package(

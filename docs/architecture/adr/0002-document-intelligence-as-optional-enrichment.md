@@ -13,7 +13,7 @@ The relevant code (uncommitted at the time of writing):
 - `swift/Sources/Scribe/SemanticAnalysis.swift` — `FoundationModels` wrapper (summarization, classification, QA). Requires iOS 26+ / macOS 26+ (uses `@Generable` and `SystemLanguageModel.default`, which are part of the structured-output API added in those SDKs) and Apple Intelligence enabled on-device. Gated via `@available(iOS 26.0, macOS 26.0, *)`.
 - `swift/Sources/Scribe/StructuralAnalysis.swift` — `Vision.RecognizeDocumentsRequest`. Requires iOS 26+ / macOS 26+.
 - `swift/Sources/Scribe/IntelligenceModels.swift` — result types
-- `swift/Sources/ScribeCLI/ScribeCLI.swift` — adds `--npl` flag on `extract` and a new `analyze` command
+- `swift/Sources/ScribeCLI/ScribeCLI.swift` — adds `--entities` flag on `extract` and a new `analyze` command
 - `shared/content-structure.schema.json` — adds an **optional** `intelligence` block
 
 Live consumers ([`CONSUMERS.md`](../../../CONSUMERS.md)) split cleanly along this line:
@@ -32,7 +32,7 @@ Operationally:
 1. `ScribeProcessor.extractContent(from:)` and `ScribeProcessor.processForTest(url:)` remain the stable extraction contract. They run no language-model code, no FoundationModels code, no entity recognition. Pure deterministic extraction.
 2. `DocumentIntelligence` is a separate type. Consumers instantiate it explicitly. Internally it calls `ScribeProcessor` for extraction, then layers NLP and (optionally, gated on `isAvailable`) AI analysis on top.
 3. The `intelligence` block in `content-structure.schema.json` is `optional`. Consumers that ignore it MUST continue to validate against the schema. Producers that omit it MUST still emit valid JSON.
-4. The CLI keeps the original `extract` command as the deterministic baseline. `extract --npl` and `analyze` are explicit opt-ins.
+4. The CLI keeps the original `extract` command as the deterministic baseline. `extract --entities` and `analyze` are explicit opt-ins.
 5. The eval harness (`eval/regression.js`, `eval/score.js`) scores `ScribeProcessor` output only. AI-generated fields (summary, classification) are out of scope for the current fidelity gate.
 
 ## Consequences

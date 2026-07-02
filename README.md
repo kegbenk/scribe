@@ -23,7 +23,7 @@ Scribe is purpose-built for the niche no competitor occupies: **fast, private, o
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/pleroma/scribe.git", from: "0.1.0")
+    .package(url: "https://github.com/kegbenk/scribe.git", from: "0.1.0")
 ]
 ```
 

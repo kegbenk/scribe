@@ -1,9 +1,6 @@
 import Foundation
 import PDFKit
 import CoreGraphics
-#if canImport(UIKit)
-import UIKit
-#endif
 
 extension ScribeProcessor {
 
@@ -94,43 +91,19 @@ extension ScribeProcessor {
     /// Render a PDF page to a JPEG image via CGContext.
     /// This handles all image encodings (JPX, JBIG2, etc.) since Core Graphics decodes them.
     func renderPageToImage(page: PDFPage, maxDimension: Int) -> Data? {
-        #if !canImport(UIKit)
-        return nil // Page rendering requires UIKit (iOS only)
-        #else
         let pageRect = page.bounds(for: .mediaBox)
         let scale = min(CGFloat(maxDimension) / pageRect.width, CGFloat(maxDimension) / pageRect.height, 2.0)
         let imageWidth = Int(pageRect.width * scale)
         let imageHeight = Int(pageRect.height * scale)
 
         guard imageWidth > 50 && imageHeight > 50 else { return nil }
+        guard let cgImage = ScribeGraphics.renderPage(page, scale: scale) else { return nil }
 
-        UIGraphicsBeginImageContextWithOptions(
-            CGSize(width: CGFloat(imageWidth), height: CGFloat(imageHeight)),
-            true, 1.0
-        )
-        guard let ctx = UIGraphicsGetCurrentContext() else {
-            UIGraphicsEndImageContext()
-            return nil
-        }
-
-        ctx.setFillColor(UIColor.white.cgColor)
-        ctx.fill(CGRect(x: 0, y: 0, width: imageWidth, height: imageHeight))
-        ctx.scaleBy(x: scale, y: scale)
-        ctx.translateBy(x: 0, y: pageRect.height)
-        ctx.scaleBy(x: 1.0, y: -1.0)
-        page.draw(with: .mediaBox, to: ctx)
-
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        guard let uiImage = image else { return nil }
-
-        if let data = uiImage.jpegData(compressionQuality: 0.5) {
+        if let data = ScribeGraphics.jpegData(from: cgImage, quality: 0.5) {
             if data.count <= 500_000 { return data }
-            return uiImage.jpegData(compressionQuality: 0.3)
+            return ScribeGraphics.jpegData(from: cgImage, quality: 0.3)
         }
         return nil
-        #endif
     }
 
     func extractImagesFromCGPDFPage(
@@ -275,33 +248,25 @@ extension ScribeProcessor {
                 streamDict: streamDict
             ) else { return }
 
-            #if canImport(UIKit)
-            let uiImage = UIImage(cgImage: cgImage)
-            guard let jpegData = uiImage.jpegData(compressionQuality: 0.7) else { return }
+            guard let jpegData = ScribeGraphics.jpegData(from: cgImage, quality: 0.7) else { return }
             imageData = jpegData
-            #else
-            return // Image conversion requires UIKit
-            #endif
         }
 
         // Apply page rotation to the extracted image if needed.
         // Raw XObject data is stored unrotated; we must apply the page's /Rotate.
-        #if canImport(UIKit)
         let rotation = context.pointee.pageRotation
-        if rotation != 0, let srcImage = UIImage(data: imageData) {
-            let rotated = rotateUIImage(srcImage, degrees: rotation)
-            if let rotatedData = rotated.jpegData(compressionQuality: 0.7) {
+        if rotation != 0, let srcImage = ScribeGraphics.cgImage(fromData: imageData) {
+            if let rotated = ScribeGraphics.rotateImage(srcImage, degrees: rotation),
+               let rotatedData = ScribeGraphics.jpegData(from: rotated, quality: 0.7) {
                 imageData = rotatedData
             }
         }
-        #endif
 
         // Cap at 500KB per image to avoid huge payloads
         guard imageData.count < 500_000 else {
-            #if canImport(UIKit)
             // Re-compress at lower quality
-            if let uiImage = UIImage(data: imageData),
-               let compressed = uiImage.jpegData(compressionQuality: 0.4),
+            if let srcImage = ScribeGraphics.cgImage(fromData: imageData),
+               let compressed = ScribeGraphics.jpegData(from: srcImage, quality: 0.4),
                compressed.count < 500_000 {
                 let base64 = compressed.base64EncodedString()
                 let dataURI = "data:image/jpeg;base64,\(base64)"
@@ -313,7 +278,6 @@ extension ScribeProcessor {
                     yPosition: 0.5
                 ))
             }
-            #endif
             return
         }
 
@@ -388,31 +352,4 @@ extension ScribeProcessor {
         )
     }
 
-    #if canImport(UIKit)
-    /// Rotate a UIImage by the given degrees (0, 90, 180, 270).
-    static func rotateUIImage(_ image: UIImage, degrees: Int) -> UIImage {
-        guard degrees != 0, let cgImage = image.cgImage else { return image }
-        let radians = CGFloat(degrees) * .pi / 180.0
-        let rotatedSize: CGSize
-        if degrees == 90 || degrees == 270 {
-            rotatedSize = CGSize(width: image.size.height, height: image.size.width)
-        } else {
-            rotatedSize = image.size
-        }
-        UIGraphicsBeginImageContextWithOptions(rotatedSize, true, 1.0)
-        guard let ctx = UIGraphicsGetCurrentContext() else {
-            UIGraphicsEndImageContext()
-            return image
-        }
-        ctx.setFillColor(UIColor.white.cgColor)
-        ctx.fill(CGRect(origin: .zero, size: rotatedSize))
-        ctx.translateBy(x: rotatedSize.width / 2, y: rotatedSize.height / 2)
-        ctx.rotate(by: radians)
-        ctx.translateBy(x: -image.size.width / 2, y: -image.size.height / 2)
-        ctx.draw(cgImage, in: CGRect(origin: .zero, size: image.size))
-        let result = UIGraphicsGetImageFromCurrentImageContext() ?? image
-        UIGraphicsEndImageContext()
-        return result
-    }
-    #endif
 }
