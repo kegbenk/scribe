@@ -4,12 +4,36 @@ import NaturalLanguage
 import PDFKit
 import Vision
 
+/// Deterministic on-device document extraction: PDF or EPUB in,
+/// reading-app-ready structured chapters out.
+///
+/// This type is the stable extraction contract. It runs no language models
+/// and performs no network I/O — see `docs/ops/privacy-principles.md`. For
+/// optional NLP/AI enrichment layered on top, see ``DocumentIntelligence``.
 public class ScribeProcessor {
 
     // MARK: - Public API
 
-    /// Extract content from a PDF or EPUB file.
-    /// Returns a dictionary with "text", "chapters", "hasStructure" keys.
+    /// Extract structured content from a PDF or EPUB file.
+    ///
+    /// The format is detected automatically (extension, falling back to
+    /// zip-magic sniffing for EPUB). PDFs go through classification →
+    /// text extraction (PDFKit, Vision OCR fallback) → chapter detection
+    /// (outline → TOC parse → heading heuristics) → footnote separation →
+    /// running-header removal. EPUBs go through container/OPF/toc parsing
+    /// with chapter splitting at toc fragment anchors.
+    ///
+    /// - Parameter url: File URL of a `.pdf` or `.epub` document.
+    /// - Returns: `nil` if the document can't be opened; otherwise a
+    ///   dictionary with:
+    ///   - `"text"`: full plain text (`String`)
+    ///   - `"chapters"`: array of chapter dictionaries (`[[String: Any]]`),
+    ///     each carrying `title`, `level`, `plainText`, `htmlContent`,
+    ///     `tokens`, `paragraphStarts`, `images`, `startPage`, `footnotes`,
+    ///     `startWordIndex`, `endWordIndex`, `wordCount`, and (when detected)
+    ///     `isBackMatter`. Word indices come from ``ScribeTokenizer``.
+    ///   - `"hasStructure"`: whether chapter structure was found rather than
+    ///     synthesized (`Bool`)
     public static func extractContent(from url: URL) -> [String: Any]? {
         let processor = ScribeProcessor()
         guard let result = processor.processFileForResult(url: url) else { return nil }
