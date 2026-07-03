@@ -149,12 +149,20 @@ public class ScribeProcessor {
         var pageExtractions: [PageExtraction] = []
         var seenImageHashes = Set<Int>()
         for i in 0..<pageCount {
-            guard let page = pdfDoc.page(at: i) else {
-                pageExtractions.append(PageExtraction(text: "", footnotes: [], images: [], pdfPageIndex: i))
-                continue
+            // Each page renders a CGImage, JPEG-encodes it, runs PDFKit text
+            // selection, and (for scans) Vision OCR — all of which enqueue large
+            // autoreleased buffers. Without draining per page, that churn
+            // accumulates to a multi-GB peak on big scanned books. The extracted
+            // PageExtraction structs (plain text + base64 data URIs) are retained
+            // by `pageExtractions` outside the pool, so they survive the drain.
+            autoreleasepool {
+                guard let page = pdfDoc.page(at: i) else {
+                    pageExtractions.append(PageExtraction(text: "", footnotes: [], images: [], pdfPageIndex: i))
+                    return
+                }
+                let logicalPages = extractLogicalPages(page: page, pageIndex: i, seenHashes: &seenImageHashes)
+                pageExtractions.append(contentsOf: logicalPages)
             }
-            let logicalPages = extractLogicalPages(page: page, pageIndex: i, seenHashes: &seenImageHashes)
-            pageExtractions.append(contentsOf: logicalPages)
         }
 
         NSLog("[ScribeProcessor] %d PDF pages → %d logical pages", pageCount, pageExtractions.count)

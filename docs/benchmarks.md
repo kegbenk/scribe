@@ -34,11 +34,16 @@ hand-annotated ground truth), and latency is wall-clock time for
 | anatomy-melancholy | 1868 scan, dense OCR | 63.8 MB | 466k | **21.5 s** | — |
 | alice-wonderland | scanned, heavily illustrated | 31.6 MB | 27k | **22.2 s** | 61.0% |
 
-Peak memory (RSS, via `node eval/perf.js`) ranges from 64 MB
-(attention-paper) through 733 MB (911-commission) up to **1.7 GB**
-(anatomy-melancholy, a 64 MB scan). The big scanned books are fine on Macs
-but above comfortable iOS budgets — worth knowing before pointing an iPhone
-at a 600-page scan.
+Peak memory scales with document size and OCR volume. Since 0.4.x the per-page
+extraction loop drains its render/OCR autorelease churn with an
+`autoreleasepool`, which cut the worst case materially: `anatomy-melancholy`
+(64 MB scan) dropped from a **1.7 GB** peak footprint to **1.19 GB** (−32%),
+and `911-commission` from ~733 MB to ~384 MB. The remaining large-scan peak is
+PDFKit's own retention of the decoded document, not Scribe's data structures —
+see [`architecture/memory-profile.md`](architecture/memory-profile.md) for the
+measured breakdown and the designed-but-not-built plan. The big scanned books
+are comfortable on Macs but still above tight iOS budgets — worth knowing
+before pointing an iPhone at a 600-page scan.
 
 \* Fidelity is the weighted overall score against hand-annotated ground truth
 across seven dimensions (chapter boundaries, chapter titles, footnote
