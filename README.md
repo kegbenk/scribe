@@ -53,6 +53,53 @@ swift run scribe-cli extract myfile.pdf --output content.json
 swift run scribe-cli extract myfile.pdf --format text
 ```
 
+## Document Intelligence (optional)
+
+`ScribeProcessor` above is the deterministic core — pure, on-device extraction with
+no models. `DocumentIntelligence` is an **optional** enrichment layer that adds NLP
+and Apple Intelligence analysis on top of the same extraction. Per
+[ADR-0002](docs/architecture/adr/0002-document-intelligence-as-optional-enrichment.md)
+it **never gates extraction**: if the models are unavailable you still get full
+`contentStructure`, just without the AI fields.
+
+**Availability.** The whole `DocumentIntelligence` surface is gated
+`@available(iOS 26.0, macOS 26.0, *)`, with two tiers inside it:
+
+| Tier | Methods | Requires |
+|---|---|---|
+| **NaturalLanguage** (entities, language, sentiment) | `extract`, `extractWithNLP`, `extractEntities(from:)`, `detectLanguage(of:)`, `analyzeSentiment(of:)` | iOS 26+ / macOS 26+ — no Apple Intelligence needed |
+| **FoundationModels** (summarize, classify, ask) | `process`, `analyze`, `summarize`, `classify(_:)`, `ask(_:context:)` | iOS 26+ / macOS 26+ **and** Apple Intelligence — check `DocumentIntelligence.isAvailable` |
+
+The `scribe-cli analyze` subcommand and the `extract --entities` flag are likewise
+gated to iOS/macOS 26+. Deterministic extraction via `ScribeProcessor` stays on
+iOS 15+ / macOS 12+ and never touches this layer.
+
+```swift
+import Scribe
+
+if #available(iOS 26.0, macOS 26.0, *) {
+    let intelligence = DocumentIntelligence()
+
+    // NLP-only enrichment — no Apple Intelligence required.
+    // Returns a ContentStructure dict with per-chapter + global entities and language.
+    let enriched = try intelligence.extractWithNLP(document: pdfURL)
+
+    // Full AI analysis — only when Apple Intelligence is available.
+    if DocumentIntelligence.isAvailable {
+        let analysis = try await intelligence.analyze(document: pdfURL)
+        print(analysis.summary.text)          // DocumentSummary
+        print(analysis.classification.genre)  // DocumentClassification
+        for person in analysis.entities where person.type == .person {
+            print(person.text)                // [NamedEntity]
+        }
+    }
+}
+```
+
+See [`swift/Sources/Scribe/DocumentIntelligence.swift`](swift/Sources/Scribe/DocumentIntelligence.swift)
+for the full method list (`summarize`, `classify`, `ask`, `analyzePageStructure`,
+`recognizeText`, …).
+
 ## Architecture
 
 ```
