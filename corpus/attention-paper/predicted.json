@@ -5101,7 +5101,7 @@
     "source" : "source.pdf",
     "totalChapters" : 10,
     "totalWords" : 4822,
-    "version" : "scribe-0.3.0"
+    "version" : "scribe-0.4.0"
   },
   "toc" : [
     {

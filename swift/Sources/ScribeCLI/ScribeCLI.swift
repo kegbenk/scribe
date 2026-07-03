@@ -12,7 +12,7 @@ struct ScribeCLI: AsyncParsableCommand {
         return CommandConfiguration(
             commandName: "scribe-cli",
             abstract: "On-device document intelligence for PDF files.",
-            version: "0.3.0",
+            version: "0.4.0",
             subcommands: subs
         )
     }
@@ -143,7 +143,7 @@ struct Extract: ParsableCommand {
             "images": allImages,
             "metadata": [
                 "source": source,
-                "version": "scribe-0.3.0",
+                "version": "scribe-0.4.0",
                 "totalChapters": chapters.count,
                 "totalWords": totalWords,
                 // No timestamp: identical input must produce identical output
