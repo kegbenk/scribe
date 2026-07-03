@@ -133,7 +133,8 @@ public struct DocumentIntelligence: Sendable {
             chapters: chapters,
             hasStructure: result.hasStructure,
             source: url.lastPathComponent,
-            intelligence: intelligenceDict
+            intelligence: intelligenceDict,
+            coverImage: result.coverImage
         )
     }
 
@@ -211,7 +212,8 @@ public struct DocumentIntelligence: Sendable {
             chapters: chapters,
             hasStructure: result.hasStructure,
             source: url.lastPathComponent,
-            intelligence: intelligenceDict
+            intelligence: intelligenceDict,
+            coverImage: result.coverImage
         )
     }
 
@@ -278,7 +280,8 @@ public struct DocumentIntelligence: Sendable {
         chapters: [[String: Any]],
         hasStructure: Bool,
         source: String,
-        intelligence: [String: Any]
+        intelligence: [String: Any],
+        coverImage: String? = nil
     ) -> [String: Any] {
         var toc: [[String: Any]] = []
         var allImages: [[String: Any]] = []
@@ -297,18 +300,22 @@ public struct DocumentIntelligence: Sendable {
 
         let totalWords = chapters.reduce(0) { $0 + ($1["wordCount"] as? Int ?? 0) }
 
+        var metadata: [String: Any] = [
+            "source": source,
+            "version": "scribe-0.2.0",
+            "totalChapters": chapters.count,
+            "totalWords": totalWords,
+            "generatedAt": ISO8601DateFormatter().string(from: Date()),
+        ]
+        // Optional, additive: the source's declared cover art (EPUB only today).
+        if let coverImage { metadata["coverImage"] = coverImage }
+
         return [
             "chapters": chapters,
             "toc": toc,
             "hasStructure": hasStructure,
             "images": allImages,
-            "metadata": [
-                "source": source,
-                "version": "scribe-0.2.0",
-                "totalChapters": chapters.count,
-                "totalWords": totalWords,
-                "generatedAt": ISO8601DateFormatter().string(from: Date()),
-            ] as [String: Any],
+            "metadata": metadata,
             "intelligence": intelligence,
         ]
     }

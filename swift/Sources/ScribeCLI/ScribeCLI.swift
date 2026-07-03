@@ -89,7 +89,8 @@ struct Extract: ParsableCommand {
             let contentStructure = buildContentStructure(
                 chapters: chapters,
                 hasStructure: hasStructure,
-                source: url.lastPathComponent
+                source: url.lastPathComponent,
+                coverImage: result["coverImage"] as? String
             )
             let jsonData = try JSONSerialization.data(
                 withJSONObject: contentStructure,
@@ -117,7 +118,8 @@ struct Extract: ParsableCommand {
     private func buildContentStructure(
         chapters: [[String: Any]],
         hasStructure: Bool,
-        source: String
+        source: String,
+        coverImage: String? = nil
     ) -> [String: Any] {
         var toc: [[String: Any]] = []
         var allImages: [[String: Any]] = []
@@ -136,19 +138,23 @@ struct Extract: ParsableCommand {
 
         let totalWords = chapters.reduce(0) { $0 + ($1["wordCount"] as? Int ?? 0) }
 
+        var metadata: [String: Any] = [
+            "source": source,
+            "version": "scribe-0.4.0",
+            "totalChapters": chapters.count,
+            "totalWords": totalWords,
+            // No timestamp: identical input must produce identical output
+            // so corpus predicted.json stays diffable (BACKLOG determinism item)
+        ]
+        // Optional, additive: the source's declared cover art (EPUB only today).
+        if let coverImage { metadata["coverImage"] = coverImage }
+
         return [
             "chapters": chapters,
             "toc": toc,
             "hasStructure": hasStructure,
             "images": allImages,
-            "metadata": [
-                "source": source,
-                "version": "scribe-0.4.0",
-                "totalChapters": chapters.count,
-                "totalWords": totalWords,
-                // No timestamp: identical input must produce identical output
-                // so corpus predicted.json stays diffable (BACKLOG determinism item)
-            ] as [String: Any],
+            "metadata": metadata,
         ]
     }
 }

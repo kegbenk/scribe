@@ -34,14 +34,20 @@ public class ScribeProcessor {
     ///     `isBackMatter`. Word indices come from ``ScribeTokenizer``.
     ///   - `"hasStructure"`: whether chapter structure was found rather than
     ///     synthesized (`Bool`)
+    ///   - `"coverImage"` (optional): the source's declared cover art as a
+    ///     base64 data URI (`String`). Present only for EPUBs that declare a
+    ///     cover under the 500KB payload cap; absent for PDFs and coverless EPUBs.
     public static func extractContent(from url: URL) -> [String: Any]? {
         let processor = ScribeProcessor()
         guard let result = processor.processFileForResult(url: url) else { return nil }
-        return [
+        var dict: [String: Any] = [
             "text": result.text,
             "chapters": result.chapters,
             "hasStructure": result.hasStructure
         ]
+        // Optional, additive: the source's declared cover art (EPUB only today).
+        if let cover = result.coverImage { dict["coverImage"] = cover }
+        return dict
     }
 
     // MARK: - Types
@@ -119,10 +125,13 @@ public class ScribeProcessor {
     /// Process a PDF file and return structured results. Used by unit tests.
     public static func processForTest(url: URL) -> (text: String, chapters: [[String: Any]], hasStructure: Bool)? {
         let processor = ScribeProcessor()
-        return processor.processFileForResult(url: url)
+        guard let r = processor.processFileForResult(url: url) else { return nil }
+        // Public test surface stays a 3-tuple; cover art is exposed via
+        // extractContent(from:)["coverImage"] (see EPUBExtractionTests).
+        return (r.text, r.chapters, r.hasStructure)
     }
 
-    func processFileForResult(url: URL) -> (text: String, chapters: [[String: Any]], hasStructure: Bool)? {
+    func processFileForResult(url: URL) -> (text: String, chapters: [[String: Any]], hasStructure: Bool, coverImage: String?)? {
         if EPUBProcessor.isEPUB(url: url) {
             return EPUBProcessor.processFileForResult(url: url)
         }
@@ -226,6 +235,8 @@ public class ScribeProcessor {
 
         chapters = calculateWordBoundaries(chapters: chapters)
         let fullText = pageTexts.joined(separator: "\n")
-        return (text: fullText, chapters: chapters, hasStructure: hasStructure)
+        // PDF cover extraction is a separate problem (rasterizing page 1); the
+        // PDF path emits no coverImage today.
+        return (text: fullText, chapters: chapters, hasStructure: hasStructure, coverImage: nil)
     }
 }

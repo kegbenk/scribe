@@ -277,6 +277,10 @@
         "generatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "Base64 data URI (data:image/jpeg;base64,... or image/png) of the source's declared cover art. Present only for EPUBs that declare a cover under the 500KB payload cap; absent for PDFs and coverless EPUBs. Additive as of 0.4.x (ADR-0005 addendum)."
         }
       }
     }

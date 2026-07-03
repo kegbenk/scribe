@@ -1,3 +1,4 @@
+import CoreGraphics
 import XCTest
 @testable import Scribe
 
@@ -164,6 +165,35 @@ final class EPUBExtractionTests: XCTestCase {
         XCTAssertTrue(ch2Notes.isEmpty)
         let sectionText = try XCTUnwrap(result.chapters[3]["plainText"] as? String)
         XCTAssertFalse(sectionText.contains("Unnumbered note"))
+    }
+
+    func testCoverImagePresentForEPUBAndAbsentForPDF() throws {
+        // EPUB: the manifest's properties="cover-image" item surfaces as a
+        // PNG data URI on the extractContent result dict.
+        let epub = try XCTUnwrap(ScribeProcessor.extractContent(from: fixtureURL))
+        let cover = try XCTUnwrap(epub["coverImage"] as? String, "EPUB cover should be surfaced")
+        XCTAssertTrue(cover.hasPrefix("data:image/png;base64,"),
+                      "cover should be a base64 PNG data URI, got: \(cover.prefix(32))")
+
+        // PDF: cover extraction is deliberately not attempted; the field is absent.
+        let pdfURL = try makeBlankPDF()
+        defer { try? FileManager.default.removeItem(at: pdfURL) }
+        let pdf = try XCTUnwrap(ScribeProcessor.extractContent(from: pdfURL))
+        XCTAssertNil(pdf["coverImage"], "PDF path must not emit a coverImage")
+    }
+
+    /// Write a minimal one-page PDF to a temp file (no dependency on corpus
+    /// sources, which aren't present in CI).
+    private func makeBlankPDF() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scribe-cover-\(UUID().uuidString).pdf")
+        var mediaBox = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let ctx = try XCTUnwrap(CGContext(url as CFURL, mediaBox: &mediaBox, nil),
+                                "failed to create PDF context")
+        ctx.beginPDFPage(nil)
+        ctx.endPDFPage()
+        ctx.closePDF()
+        return url
     }
 
     func testZipReaderRoundTrip() throws {

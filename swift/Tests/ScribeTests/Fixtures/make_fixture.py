@@ -22,6 +22,7 @@ opf = '''<?xml version="1.0" encoding="UTF-8"?>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="cover-img" href="images/cover.png" media-type="image/png" properties="cover-image"/>
     <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
     <item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/>
@@ -131,4 +132,6 @@ with zipfile.ZipFile(path, 'w') as z:
     ]:
         z.writestr(name, content, compress_type=zipfile.ZIP_DEFLATED)
     z.writestr('OEBPS/images/fig1.png', png, compress_type=zipfile.ZIP_STORED)
+    # EPUB3 cover-image (manifest properties="cover-image"); reuses the 1x1 PNG.
+    z.writestr('OEBPS/images/cover.png', png, compress_type=zipfile.ZIP_STORED)
 print("wrote", path)

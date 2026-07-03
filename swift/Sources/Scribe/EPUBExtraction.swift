@@ -24,7 +24,7 @@ final class EPUBProcessor {
 
     // MARK: - Entry point
 
-    static func processFileForResult(url: URL) -> (text: String, chapters: [[String: Any]], hasStructure: Bool)? {
+    static func processFileForResult(url: URL) -> (text: String, chapters: [[String: Any]], hasStructure: Bool, coverImage: String?)? {
         guard let zip = ZipReader(url: url) else { return nil }
         guard let containerData = zip.contents(of: "META-INF/container.xml"),
               let opfPath = ContainerParser.rootfilePath(containerData) else {
@@ -38,6 +38,10 @@ final class EPUBProcessor {
             return nil
         }
         let opfDir = parentDirectory(of: opfPath)
+
+        // The book's declared cover art (data URI), if any — additive metadata
+        // for consumers rendering a library grid. Resolved once, up front.
+        let coverImage = discoverCover(opf: opf, opfDir: opfDir, zip: zip)
 
         // Table of contents: EPUB3 nav document, falling back to EPUB2 NCX.
         var tocEntries: [TocEntry] = []
@@ -115,7 +119,11 @@ final class EPUBProcessor {
             wordTotal += parsed.paragraphs.reduce(0) { $0 + ScribeTokenizer.parseText($1).count }
         }
 
-        guard !globalParagraphs.isEmpty || !globalImages.isEmpty else { return nil }
+        guard !globalParagraphs.isEmpty || !globalImages.isEmpty else {
+            // Whole-book cover with no readable spine text is not a document we
+            // can serve, but keep the nil-return contract of "no content".
+            return nil
+        }
 
         // Prefix-sum of per-paragraph word counts, to rebase image word offsets
         // from global back into per-chapter offsets.
@@ -226,7 +234,43 @@ final class EPUBProcessor {
 
         guard !chapters.isEmpty else { return nil }
         chapters = scribe.calculateWordBoundaries(chapters: chapters)
-        return (text: fullTextParts.joined(separator: "\n"), chapters: chapters, hasStructure: hasStructure)
+        return (text: fullTextParts.joined(separator: "\n"), chapters: chapters,
+                hasStructure: hasStructure, coverImage: coverImage)
+    }
+
+    // MARK: - Cover image
+
+    /// Discover the EPUB's declared cover art and return it as a base64 data
+    /// URI, or nil if none is declared / it can't be loaded / it exceeds the
+    /// payload cap. Discovery order (most authoritative first):
+    ///   (a) EPUB3 manifest item whose `properties` contains `cover-image`;
+    ///   (b) EPUB2 `<meta name="cover" content="ITEM_ID"/>` → manifest item;
+    ///   (c) fallback: a manifest image item whose id or href contains "cover".
+    /// The 500KB cap matches the inline-image payload limit; oversize covers are
+    /// skipped rather than resized (a deliberate limitation — consumers that need
+    /// a thumbnail can render the first page instead).
+    private static func discoverCover(opf: OPFPackage, opfDir: String, zip: ZipReader) -> String? {
+        func isImage(_ item: OPFPackage.ManifestItem) -> Bool { item.mediaType.hasPrefix("image/") }
+
+        var coverItem = opf.manifest.values.first { $0.properties.contains("cover-image") && isImage($0) }
+        if coverItem == nil, let id = opf.metaCoverID, let item = opf.manifest[id], isImage(item) {
+            coverItem = item
+        }
+        if coverItem == nil {
+            coverItem = opf.manifest.values.first {
+                isImage($0) && ($0.id.lowercased().contains("cover") || $0.href.lowercased().contains("cover"))
+            }
+        }
+        guard let item = coverItem else { return nil }
+
+        let path = resolvePath(stripFragment(item.href), relativeTo: opfDir)
+        guard let data = zip.contents(of: path) else { return nil }
+        // Same payload cap as the inline-image pipeline; skip (don't resize) if over.
+        guard data.count < 500_000 else {
+            NSLog("[EPUBProcessor] cover %@ is %d bytes (> 500KB cap); skipping", path, data.count)
+            return nil
+        }
+        return "data:\(item.mediaType);base64,\(data.base64EncodedString())"
     }
 
     // MARK: - Positioned image
@@ -378,6 +422,8 @@ struct OPFPackage {
     var spineTocID: String?
     var title: String?
     var language: String?
+    /// EPUB2 cover pointer: the manifest item id from `<meta name="cover" content="ID"/>`.
+    var metaCoverID: String?
 }
 
 private final class OPFParser: NSObject, XMLParserDelegate {
@@ -407,6 +453,13 @@ private final class OPFParser: NSObject, XMLParserDelegate {
                 mediaType: attributes["media-type"] ?? "",
                 properties: properties
             )
+        case "meta":
+            // EPUB2 cover declaration: <meta name="cover" content="ITEM_ID"/>.
+            if package.metaCoverID == nil,
+               attributes["name"]?.lowercased() == "cover",
+               let content = attributes["content"], !content.isEmpty {
+                package.metaCoverID = content
+            }
         case "spine":
             package.spineTocID = attributes["toc"]
         case "itemref":

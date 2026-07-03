@@ -13,7 +13,7 @@ The bootstrap plan calls for cross-runtime contracts that stay aligned across Sw
 
 The contract:
 
-- A document → an array of chapters, plus a `toc`, plus a `hasStructure` flag, plus optional `intelligence`.
+- A document → an array of chapters, plus a `toc`, plus a `hasStructure` flag, plus optional `intelligence`, plus optional `metadata.coverImage` (the source's declared cover art as a base64 data URI; EPUB-only today, capped at 500KB — see [ADR-0005](architecture/adr/0005-epub-extraction-in-repo.md) addendum).
 - A chapter → `{ title, plainText, htmlContent, startPage, startWordIndex, endWordIndex, wordCount, footnotes, images, isBackMatter }`.
 - A TOC entry → `{ title, wordIndex, chapterIndex, level }`. `level` is a 0-based outline depth (0 = top-level, 1 = first-nested, etc.). New as of [ADR-0004](architecture/adr/0004-nested-outline-and-level-field.md); optional in the JSON schema; tolerated-on-decode by the Swift `TOCEntry` decoder (defaults to 0 when missing).
 - Word indices are computed by the same tokenizer as `shared/tokenizer/parseText.js` and `ScribeTokenizer.parseText()` — they MUST agree.
