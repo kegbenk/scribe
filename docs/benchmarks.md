@@ -9,7 +9,12 @@ hand-annotated ground truth), and latency is wall-clock time for
 ## Setup
 
 - **Hardware:** Mac mini, Apple M4, 24 GB RAM
-- **Build:** `swift build -c release`, Scribe 0.3.0 (2026-07-02)
+- **Build:** `swift build -c release`, Scribe 0.4.0 (2026-07-02). The PDF
+  latencies below were measured at 0.3.0; the PDF extraction paths are
+  unchanged through 0.4.0 (the only library change since 0.3.0 is additive
+  EPUB support — see the public API diff in the 0.4.0 release notes), so they
+  carry forward. The pride-prejudice EPUB latency was re-measured on the
+  fresh 0.4.0 release binary and is identical (0.24 s, peak 41 MB).
 - **Measurement:** wall-clock for the full CLI invocation (process start →
   JSON written), single run, no warm-up. On-device, no network.
 - **Reproduce:** `swift build -c release --package-path swift`, then
