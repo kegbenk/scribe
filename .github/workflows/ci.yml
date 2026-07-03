@@ -11,6 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Cheap mechanical guard (grep-only, no build) that the deterministic core
+      # references no networking APIs and pulls no external deps. Enforces
+      # docs/ops/privacy-principles.md. Runs first so a privacy regression fails
+      # fast before the expensive build/test/eval steps.
+      - name: Privacy audit
+        run: bash tools/privacy-audit.sh
+
       - name: Select newest Xcode
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"

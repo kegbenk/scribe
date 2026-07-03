@@ -30,7 +30,14 @@ Before tagging any release:
 4. **Public API diff.**
    Compare public API of `swift/Sources/Scribe/` vs the previous tag. If anything in `CONSUMERS.md` changed signature, behavior, or return-shape, the version bump must be at least minor and the change must appear in the release notes with a migration note.
 
-5. **CHANGELOG.** _(deferred until first 1.0 release; until then, use git log + release notes on the tag.)_
+5. **Privacy audit passes.**
+   `bash tools/privacy-audit.sh` exits 0 — the deterministic core
+   (`swift/Sources/Scribe`) references no networking APIs and pulls no external
+   package dependencies, per [`privacy-principles.md`](privacy-principles.md). Also
+   runs first in CI, so a clean CI run already covers this; re-run locally before
+   tagging as a belt-and-suspenders check.
+
+6. **CHANGELOG.** _(deferred until first 1.0 release; until then, use git log + release notes on the tag.)_
 
 ## Tagging
 
