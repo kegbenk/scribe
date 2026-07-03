@@ -51,7 +51,7 @@ The plan's Phase 1 ("single-document MVP core"). Most of extraction is done; wha
 - [x] **CI for regression run** — done 2026-07-02; `.github/workflows/ci.yml` runs build + tests + live attention-paper extraction + full regression on every push/PR.
 - [ ] **CI smoke-test for consumers** (`velo-macos`, `rsvp-reader`).
 - [ ] **Privacy audit script** (`grep` checks per `docs/ops/privacy-principles.md`'s audit checklist) wired into pre-tag.
-- [ ] **Public API diff tool** to flag breaking changes in `swift/Sources/Scribe/` against the last tag.
+- [x] **Public API diff tool** — done 2026-07-02. `tools/api-diff.sh [OLD_REF] [NEW_REF]` checks each ref out into a throwaway `git worktree`, grep-extracts every `public`/`open` declaration from `swift/Sources/Scribe/*.swift`, normalizes + sorts the signatures, and diffs them; removed/renamed symbols exit non-zero (potential breaking change), additive-only exits 0. Pragmatic source-grep tool (limits documented in its header — `@available`/default-value changes aren't caught; swap in `swift-api-digester` for a type-aware diff). Verified on `0.3.0..HEAD`: no public-surface change (EPUB added only internal symbols; `EPUBProcessor`/`ZipReader` are `internal`). Exercised at tag time for 0.4.0.
 
 ## Risk register (from bootstrap plan, watched here)
 
