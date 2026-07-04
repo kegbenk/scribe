@@ -1,5 +1,9 @@
 # Scribe
 
+[![CI](https://github.com/kegbenk/scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/kegbenk/scribe/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-iOS%2015%2B%20%7C%20macOS%2012%2B-lightgrey.svg)](Package.swift)
+
 On-device PDF and EPUB content extraction for iOS and macOS. Produces structured chapter/footnote/image output using only Apple frameworks (PDFKit, Vision, CoreGraphics, Foundation) — no server, no network, no ML models, no third-party dependencies.
 
 ## Why Scribe?
@@ -222,3 +226,8 @@ The `corpus/` directory contains 10 books spanning different PDF types:
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — the short version: tests green, the
+fidelity regression gate green, no new dependencies, no eval theater.
