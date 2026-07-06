@@ -219,12 +219,19 @@ public struct DocumentIntelligence: Sendable {
 
     // MARK: - Individual Capabilities
 
-    public func summarize(_ text: String, style: SummaryStyle = .concise) async throws -> DocumentSummary {
-        try await SemanticAnalyzer.summarize(text, style: style)
+    /// `chapterTitles` powers a last-resort fallback: when every text excerpt
+    /// trips the on-device safety layer, the summary is inferred from the
+    /// (innocuous) chapter titles instead of failing outright.
+    /// `title` anchors the model to the actual work so an excerpt that quotes
+    /// or discusses ANOTHER book can't be mistaken for the book itself.
+    public func summarize(_ text: String, style: SummaryStyle = .concise,
+                          chapterTitles: [String] = [],
+                          title: String? = nil) async throws -> DocumentSummary {
+        try await SemanticAnalyzer.summarize(text, style: style, chapterTitles: chapterTitles, title: title)
     }
 
-    public func classify(_ text: String) async throws -> DocumentClassification {
-        try await SemanticAnalyzer.classify(text)
+    public func classify(_ text: String, title: String? = nil) async throws -> DocumentClassification {
+        try await SemanticAnalyzer.classify(text, title: title)
     }
 
     public func extractEntities(from text: String) -> [NamedEntity] {
