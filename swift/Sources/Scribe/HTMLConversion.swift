@@ -83,10 +83,25 @@ extension ScribeProcessor {
             }
         }
 
-        // If we have images, insert them at proportional positions in the HTML
+        // If we have images, insert each at its word-anchored position. wordPos is
+        // a token index into the chapter word stream; the image is inserted before
+        // the first paragraph whose cumulative word count exceeds it (images past
+        // the last paragraph append at the end). __VELO_PAGE_FN_* marker paragraphs
+        // contribute ZERO words. Paragraph token counts are computed once — not per
+        // image — with the shared tokenizer, for parity with the wordPosition anchor.
         if !images.isEmpty {
-            let totalParagraphs = paragraphs.count
-            for img in images.reversed() { // Reverse to insert from end
+            var cumulative: [Int] = []  // cumulative[i] = word count through paragraph i (inclusive)
+            var running = 0
+            for para in paragraphs {
+                let isMarker = markerRegex.firstMatch(in: para, range: NSRange(para.startIndex..., in: para)) != nil
+                running += isMarker ? 0 : ScribeTokenizer.parseText(para).count
+                cumulative.append(running)
+            }
+
+            // Insert from the end so an earlier insertion can't shift a later target;
+            // insertIdx is against the original paragraph indices (cumulative), which
+            // stay valid for any index below an already-inserted figure.
+            for img in images.reversed() {
                 let wordPos = img["wordPosition"] as? Int ?? 0
                 let src = img["src"] as? String ?? ""
                 let alt = img["alt"] as? String ?? ""
@@ -95,11 +110,11 @@ extension ScribeProcessor {
 
                 guard !src.isEmpty else { continue }
 
-                // Calculate which paragraph this image should appear after
-                let tokens = ScribeTokenizer.parseText(text)
-                let totalTokens = max(1, tokens.count)
-                let progress = Double(wordPos) / Double(totalTokens)
-                let insertIdx = min(totalParagraphs, max(0, Int(progress * Double(totalParagraphs))))
+                var insertIdx = cumulative.count  // past last paragraph → append
+                for i in 0..<cumulative.count where cumulative[i] > wordPos {
+                    insertIdx = i
+                    break
+                }
 
                 let imgHtml = "<figure class=\"transposed-figure\"><img src=\"\(src)\" alt=\"\(alt)\" width=\"\(w)\" height=\"\(h)\" loading=\"lazy\"></figure>"
 
