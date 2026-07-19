@@ -1158,36 +1158,33 @@ extension ScribeProcessor {
     }
 
     /// Map extracted images to word positions within a chapter.
-    /// Images are positioned proportionally: if an image is on page 3 of a 5-page chapter,
-    /// its wordPosition is roughly 60% through the chapter's token stream.
+    /// wordPosition is page-anchored: the cumulative word count of every page
+    /// BEFORE the image's page, plus the image's fractional offset within its own
+    /// page (yPosition × that page's word count). It is NOT scaled by
+    /// totalWords/totalPageWords — the assembled chapterText and the summed page
+    /// texts tokenize to different counts (footnotes appended, page markers
+    /// stripped), and scaling by that ratio smears the anchor.
     func buildChapterImages(pages: [PageExtraction], chapterText: String) -> [[String: Any]] {
         let allImages = pages.flatMap { $0.images }
         guard !allImages.isEmpty else { return [] }
 
-        let tokens = ScribeTokenizer.parseText(chapterText)
-        let totalWords = tokens.count
+        let totalWords = ScribeTokenizer.parseText(chapterText).count
         guard totalWords > 0 else { return [] }
 
-        // Calculate cumulative word counts per page for position mapping
+        // Per-page word counts are the anchor basis (from page.text, matching the
+        // token stream consumers use for playback position).
         var pageWordCounts: [Int] = []
         for page in pages {
-            let pageWords = ScribeTokenizer.parseText(page.text)
-            pageWordCounts.append(pageWords.count)
+            pageWordCounts.append(ScribeTokenizer.parseText(page.text).count)
         }
-        let totalPageWords = pageWordCounts.reduce(0, +)
-        guard totalPageWords > 0 else { return [] }
 
         var result: [[String: Any]] = []
         var cumulativeWords = 0
 
         for (pageIdx, page) in pages.enumerated() {
             for img in page.images {
-                // Position within chapter based on cumulative words up to this page
-                // plus fractional position within the page
-                let pageProgress = Double(cumulativeWords) / Double(totalPageWords)
-                let withinPageProgress = Double(img.yPosition) * Double(pageWordCounts[pageIdx]) / Double(totalPageWords)
-                let overallProgress = min(1.0, pageProgress + withinPageProgress)
-                let wordPosition = Int(overallProgress * Double(totalWords - 1))
+                let withinPage = Int((Double(img.yPosition) * Double(pageWordCounts[pageIdx])).rounded())
+                let wordPosition = min(totalWords - 1, max(0, cumulativeWords + withinPage))
 
                 result.append([
                     "src": img.dataURI,
